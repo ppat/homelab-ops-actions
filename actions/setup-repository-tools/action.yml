@@ -1,0 +1,112 @@
+---
+name: Setup Repository and Tools
+description: Fetch repository and set up tools (via mise) needed for running reusable workflows.
+author: homelab-ops@homelab-ops.com
+
+inputs:
+  current_fetch_depth:
+    required: false
+    type: number
+    default: 1
+  current_git_ref:
+    required: true
+    type: string
+  current_persist_credentials:
+    required: false
+    type: boolean
+    default: false
+  current_repository:
+    required: true
+    type: string
+  extra_cache_path:
+    required: false
+    type: string
+    default: ""
+  extra_cache_key:
+    required: false
+    type: string
+    default: ""
+  extra_cache_restore_keys:
+    required: false
+    type: string
+    default: ""
+  mise_ignore_cfg:
+    required: false
+    type: string
+    default: ""
+  mise_log_level:
+    required: false
+    type: string
+    default: "info"
+  mise_version:
+    required: true
+    type: string
+  token:
+    required: true
+    type: string
+  tools_git_ref:
+    required: true
+    type: string
+  tools_repository:
+    required: true
+    type: string
+
+runs:
+  using: composite
+  steps:
+  - name: Checkout tools
+    uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+    with:
+      fetch-depth: 1
+      path: tools
+      repository: ${{ inputs.tools_repository }}
+      ref: ${{ inputs.tools_git_ref }}
+      persist-credentials: false
+
+  - name: Checkout current
+    uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+    with:
+      fetch-depth: ${{ inputs.current_fetch_depth }}
+      path: current
+      repository: ${{ inputs.current_repository }}
+      ref: ${{ inputs.current_git_ref }}
+      persist-credentials: ${{ inputs.current_persist_credentials }}
+      token: ${{ inputs.token }}
+
+  - name: Cache - mise
+    uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+    with:
+      path: ~/.local/share/mise
+      key: mise-${{hashFiles('tools/mise.toml')}}-${{hashFiles('current/mise.toml')}}
+      restore-keys: |
+        mise-${{hashFiles('tools/mise.toml')}}
+        mise-
+
+  - name: Cache - extra
+    if: ${{ inputs.extra_cache_path != '' }}
+    uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+    with:
+      path: ${{ inputs.extra_cache_path }}
+      key: ${{ inputs.extra_cache_key }}
+      restore-keys: ${{ inputs.extra_cache_restore_keys }}
+
+  - name: Setup default mise configuration
+    shell: bash
+    # yamllint disable-line rule:indentation
+    run: |
+      mkdir -p ~/.config/mise
+      ln -s $GITHUB_WORKSPACE/tools/mise.toml ~/.config/mise/config.toml
+
+  - name: Setup mise
+    uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2.4.4
+    env:
+      MISE_GITHUB_TOKEN: ${{ inputs.token }}
+      # yamllint disable-line rule:line-length
+      MISE_IGNORED_CONFIG_PATHS: ${{ inputs.mise_ignore_cfg != '' && format('{0}/current/{1}', github.workspace, inputs.mise_ignore_cfg) || '' }}
+    with:
+      version: ${{ inputs.mise_version }}
+      install: true
+      cache: false
+      experimental: true
+      log_level: ${{ inputs.mise_log_level }}
+      working_directory: ${{ github.workspace }}/current
