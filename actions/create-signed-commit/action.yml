@@ -1,0 +1,146 @@
+---
+name: Create Signed Commit
+description: Create a signed commit from staged changes
+author: homelab-ops@homelab-ops.com
+
+inputs:
+  commit_message:
+    required: true
+    type: string
+  branch:
+    required: true
+    type: string
+  repository:
+    required: true
+    type: string
+  token:
+    required: true
+    type: string
+  working_directory:
+    required: true
+    type: string
+
+runs:
+  using: composite
+  steps:
+  - name: Setup default mise configuration
+    env:
+      BRANCH: ${{ inputs.branch }}
+      GH_TOKEN: ${{ inputs.token }}
+      MSG: "${{ inputs.commit_message }}"
+      REPO: ${{ inputs.repository }}
+    shell: bash
+    working-directory: ${{ inputs.working_directory }}
+    # yamllint disable-line rule:indentation
+    run: |
+      set -euo pipefail
+      command -v jq >/dev/null || (sudo apt-get update && sudo apt-get install -y jq)
+
+      echo "Collecting staged changes..."
+      status=()
+      mapfile -d '' status < <(git diff --cached --name-status -z) || true
+
+      additions_json='[]'
+      deletions_json='[]'
+
+      i=0
+      while (( i < ${#status[@]} )); do
+        code="${status[$i]}"; i=$(( i + 1 ))
+        case "$code" in
+          A|M)
+            path="${status[$i]}"; i=$(( i + 1 ))
+            b64=$(base64 -w 0 -- "$path")
+            additions_json=$(jq -c --arg p "$path" --arg c "$b64" \
+              '. + [{path:$p, contents:$c}]' <<<"$additions_json")
+            ;;
+          D)
+            path="${status[$i]}"; i=$(( i + 1 ))
+            deletions_json=$(jq -c --arg p "$path" '. + [{path:$p}]' <<<"$deletions_json")
+            ;;
+          R*)
+            old="${status[$i]}"; i=$(( i + 1 ))
+            new="${status[$i]}"; i=$(( i + 1 ))
+            deletions_json=$(jq -c --arg p "$old" '. + [{path:$p}]' <<<"$deletions_json")
+            b64=$(base64 -w 0 -- "$new")
+            additions_json=$(jq -c --arg p "$new" --arg c "$b64" \
+              '. + [{path:$p, contents:$c}]' <<<"$additions_json")
+            ;;
+          *)
+            path="${status[$i]}"; i=$(( i + 1 ))
+            echo "Skipping change type '$code' for '$path'"
+            ;;
+        esac
+      done
+
+      echo -e "Additions:\n$additions_json" | pr -t -o 4
+      echo -e "Deletions:\n$deletions_json" | pr -t -o 4
+      if [[ "$(jq 'length' <<<"$additions_json")" -eq 0 && "$(jq 'length' <<<"$deletions_json")" -eq 0 ]]; then
+        echo "No staged changes; nothing to commit."
+        exit 0
+      fi
+      echo
+
+      echo "Resolving expected Head Oid..."
+      OWNER="${REPO%%/*}"
+      NAME="${REPO#*/}"
+      head_oid=$(
+        gh api graphql \
+          -f query='
+            query($owner:String!, $name:String!, $qref:String!) {
+              repository(owner:$owner, name:$name) {
+                ref(qualifiedName:$qref) { target { __typename ... on Commit { oid } } }
+              }
+            }' \
+          -f owner="$OWNER" -f name="$NAME" -f qref="refs/heads/$BRANCH" \
+          --jq '.data.repository.ref.target.oid' \
+        || true
+      )
+      if [[ -z "${head_oid:-}" || "${head_oid}" == "null" ]]; then
+        echo "ERROR: could not resolve expectedHeadOid for refs/heads/$BRANCH"
+        gh api graphql -f query='query($o:String!,$n:String!,$r:String!){
+          repository(owner:$o,name:$n){ ref(qualifiedName:$r){ target{ __typename } } }
+        }' -f o="$OWNER" -f n="$NAME" -f r="refs/heads/$BRANCH" || true
+        exit 1
+      fi
+
+      echo "Create a git commit w/ these changes..."
+      vars=$(jq -c --null-input \
+        --arg repo "$REPO" \
+        --arg branch "$BRANCH" \
+        --arg msg "$MSG" \
+        --arg head "$head_oid" \
+        --argjson adds "$additions_json" \
+        --argjson dels "$deletions_json" \
+        '{ input:{
+            branch:{ repositoryNameWithOwner:$repo, branchName:$branch },
+            message:{ headline:$msg },
+            expectedHeadOid:$head,
+            fileChanges:{ additions:$adds, deletions:$dels }
+          }}')
+
+      GQL=$(cat <<'EOF'
+      mutation($input: CreateCommitOnBranchInput!) {
+        createCommitOnBranch(input:$input) {
+          commit { oid url }
+        }
+      }
+      EOF
+      )
+
+      BODY=$(jq -c --null-input \
+        --arg q "$GQL" \
+        --argjson v "$vars" \
+        '{query:$q, variables:$v}')
+
+      if ! out=$(gh api graphql --input - <<<"$BODY" --jq '.data.createCommitOnBranch.commit' 2>err.log); then
+        echo "GraphQL commit failed:"
+        cat err.log | pr -t -o 4
+        echo "Variables (redacted contents):"
+        jq '(.input.fileChanges.additions[]?.contents)="<base64-redacted>"' <<<"$vars" | pr -t -o 4
+        exit 1
+      fi
+      echo "$out" | jq | pr -t -o 4
+
+      echo "GraphQL commit successful."
+      echo "Exiting w/ error code as this commit itself should trigger the follow up re-run that will succeed."
+      exit 1
