@@ -31,6 +31,7 @@ jobs:
         - .github/renovate/**
         yaml:
         - '**.yaml'
+        - '**.yml'
       git_ref: ${{ github.head_ref || github.ref }}
 
   commit-messages:
