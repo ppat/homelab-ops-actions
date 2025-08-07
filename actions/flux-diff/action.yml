@@ -1,0 +1,74 @@
+---
+name: Flux Diff
+description: Run flux-local diff against before and after versions of a kubernetes manifest paths
+author: homelab-ops@homelab-ops.com
+
+inputs:
+  log_level:
+    required: false
+    type: string
+    default: INFO
+  other_params:
+    required: false
+    type: string
+    default: ""
+  path_after:
+    required: true
+    type: string
+  path_before:
+    required: true
+    type: string
+  resource_type:
+    required: true
+    type: string
+  skip_params:
+    required: false
+    type: string
+    default: "--skip-crds --skip-secrets"
+  sources:
+    required: true
+    type: string
+  strip_attrs:
+    required: false
+    type: string
+    default: "helm.sh/chart,checksum/config,app.kubernetes.io/version,chart"
+
+outputs:
+  diff:
+    value: ${{ steps.diff.outputs.diff }}
+
+runs:
+  using: composite
+  steps:
+  - name: Run flux-local diff
+    uses: docker://ghcr.io/allenporter/flux-local:v7.5.4@sha256:72dbdeabca1eb4d1a053c78dfa0d1d8e2a4c4aee2c8d3938db1a382d22b0a6f9
+    with:
+      args: >-
+        --log-level ${{ inputs.log_level }}
+        diff ${{ inputs.resource_type }}
+        --unified 6
+        --path /github/workspace/${{ inputs.path_after }}
+        --path-orig /github/workspace/${{ inputs.path_before }}
+        ${{ inputs.skip_params }}
+        --strip-attrs ${{ inputs.strip_attrs }}
+        --limit-bytes 10000
+        --all-namespaces
+        --sources ${{ inputs.sources }}
+        --output-file diff.patch
+        ${{ inputs.other_params }}
+
+  - name: Generate Diff
+    id: diff
+    shell: bash
+    # yamllint disable-line rule:indentation
+    run: |
+      echo 'diff<<EOF' >> $GITHUB_OUTPUT
+      cat diff.patch >> $GITHUB_OUTPUT
+      echo 'EOF' >> $GITHUB_OUTPUT
+      echo
+      if [ -s diff.patch ]; then
+        echo "Changes detected:"
+        cat diff.patch | sed -E 's|^|    |p'
+      else
+        echo "No changes detected."
+      fi
