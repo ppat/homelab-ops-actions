@@ -62,11 +62,18 @@ runs:
   - name: Generate Diff
     id: diff
     shell: bash
+    # yamllint disable-line rule:indentation
     run: |
       echo 'diff<<EOF' >> $GITHUB_OUTPUT
       cat diff.patch >> $GITHUB_OUTPUT
       echo 'EOF' >> $GITHUB_OUTPUT
-      cat diff.patch
+      echo
+      if [ -s diff.patch ]; then
+        echo "Changes detected:"
+        cat diff.patch | sed -E 's|^|    |p'
+      else
+        echo "No changes detected."
+      fi
 
   - name: Add PR comment w/ diff
     uses: ppat/homelab-ops-actions/actions/comment-on-pr@flux-diff
