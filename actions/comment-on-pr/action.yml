@@ -1,4 +1,5 @@
 ---
+# yamllint disable rule:line-length
 name: Create or Update PR Comment
 description: Create a new comment or update an existing comment on a pull request
 author: homelab-ops@homelab-ops.com
@@ -32,7 +33,7 @@ outputs:
     description: The ID of the created or updated comment
     value: ${{ steps.comment.outputs.comment_id }}
   comment_url:
-    description: The URL of the created or updated comment  
+    description: The URL of the created or updated comment
     value: ${{ steps.comment.outputs.comment_url }}
   action_taken:
     description: Whether comment was 'created' or 'updated'
@@ -50,61 +51,62 @@ runs:
       MESSAGE: ${{ inputs.message }}
       MESSAGE_ID: ${{ inputs.message_id }}
     shell: bash
+    # yamllint disable-line rule:indentation
     run: |
       set -euo pipefail
-      
+
       # Ensure required tools are available
       command -v jq >/dev/null || (sudo apt-get update && sudo apt-get install -y jq)
       command -v gh >/dev/null || {
         echo "ERROR: GitHub CLI (gh) is required but not found"
         exit 1
       }
-      
+
       # Validate inputs
       if [[ -z "${REPO:-}" ]]; then
         echo "ERROR: repository is required"
         exit 1
       fi
-      
+
       if [[ -z "${PR_NUMBER:-}" || "${PR_NUMBER}" == "null" ]]; then
         echo "ERROR: pr_number is required (not a pull request context?)"
         exit 1
       fi
-      
+
       if [[ -z "${MESSAGE:-}" ]]; then
         echo "ERROR: message is required"
         exit 1
       fi
-      
+
       if [[ -z "${MESSAGE_ID:-}" ]]; then
         echo "ERROR: message_id is required"
         exit 1
       fi
-      
+
       # Parse repository owner and name
       OWNER="${REPO%%/*}"
       NAME="${REPO#*/}"
-      
+
       if [[ -z "${OWNER}" || -z "${NAME}" || "${OWNER}" == "${NAME}" ]]; then
         echo "ERROR: repository must be in format 'owner/repo', got: '${REPO}'"
         exit 1
       fi
-      
+
       echo "Repository: ${OWNER}/${NAME}"
       echo "PR Number: ${PR_NUMBER}"
       echo "Message ID: ${MESSAGE_ID}"
       echo
-      
+
       # Create comment body with hidden identifier
       COMMENT_BODY=$(cat <<EOF
       ${MESSAGE}
-      
+
       <!-- pr-comment-id: ${MESSAGE_ID} -->
       EOF
       )
-      
+
       echo "Searching for existing comment with message ID '${MESSAGE_ID}'..."
-      
+
       # Get existing comments and search for our message ID
       EXISTING_COMMENT_ID=""
       if existing_comments=$(gh api "/repos/${OWNER}/${NAME}/issues/${PR_NUMBER}/comments" --jq '.[].id as $id | .[].body as $body | select($body | test("<!-- pr-comment-id: '"${MESSAGE_ID}"' -->")) | $id' 2>/dev/null); then
@@ -118,7 +120,7 @@ runs:
       else
         echo "Failed to retrieve existing comments, will attempt to create new comment"
       fi
-      
+
       if [[ -n "${EXISTING_COMMENT_ID}" ]]; then
         echo "Updating existing comment..."
         if response=$(gh api \
@@ -126,13 +128,13 @@ runs:
           "/repos/${OWNER}/${NAME}/issues/comments/${EXISTING_COMMENT_ID}" \
           --field body="${COMMENT_BODY}" \
           2>update_error.log); then
-          
+
           comment_id=$(echo "${response}" | jq -r '.id')
           comment_url=$(echo "${response}" | jq -r '.html_url')
-          
+
           echo "Successfully updated comment ${comment_id}"
           echo "Comment URL: ${comment_url}"
-          
+
           # Set outputs
           echo "comment_id=${comment_id}" >> $GITHUB_OUTPUT
           echo "comment_url=${comment_url}" >> $GITHUB_OUTPUT
@@ -149,13 +151,13 @@ runs:
           "/repos/${OWNER}/${NAME}/issues/${PR_NUMBER}/comments" \
           --field body="${COMMENT_BODY}" \
           2>create_error.log); then
-          
+
           comment_id=$(echo "${response}" | jq -r '.id')
           comment_url=$(echo "${response}" | jq -r '.html_url')
-          
+
           echo "Successfully created comment ${comment_id}"
           echo "Comment URL: ${comment_url}"
-          
+
           # Set outputs
           echo "comment_id=${comment_id}" >> $GITHUB_OUTPUT
           echo "comment_url=${comment_url}" >> $GITHUB_OUTPUT
@@ -166,5 +168,5 @@ runs:
           exit 1
         fi
       fi
-      
+
       echo "Comment operation completed successfully."
