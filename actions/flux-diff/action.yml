@@ -8,9 +8,6 @@ inputs:
     required: false
     type: string
     default: INFO
-  message_id:
-    required: true
-    type: string
   other_params:
     required: false
     type: string
@@ -35,9 +32,10 @@ inputs:
     required: false
     type: string
     default: "helm.sh/chart,checksum/config,app.kubernetes.io/version,chart"
-  token:
-    required: true
-    type: string
+
+outputs:
+  diff:
+    value: ${{ steps.diff.outputs.diff }}
 
 runs:
   using: composite
@@ -74,15 +72,3 @@ runs:
       else
         echo "No changes detected."
       fi
-
-  - name: Add PR comment w/ diff
-    uses: ppat/homelab-ops-actions/actions/comment-on-pr@flux-diff
-    if: ${{ steps.diff.outputs.diff != '' }}
-    continue-on-error: true
-    with:
-      message: |
-        `````diff
-        ${{ steps.diff.outputs.diff }}
-        `````
-      message_id: ${{ inputs.message_id }}
-      token: ${{ inputs.token }}
