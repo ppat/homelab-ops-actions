@@ -68,7 +68,7 @@ runs:
       cat diff.patch
 
   - name: Add PR comment w/ diff
-    uses: ./actions/comment-on-pr
+    uses: ${{ github.action_path }}/../comment-on-pr
     if: ${{ steps.diff.outputs.diff != '' }}
     continue-on-error: true
     with:
