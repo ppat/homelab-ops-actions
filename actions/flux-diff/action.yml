@@ -61,6 +61,7 @@ runs:
 
   - name: Generate Diff
     id: diff
+    shell: bash
     run: |
       echo 'diff<<EOF' >> $GITHUB_OUTPUT
       cat diff.patch >> $GITHUB_OUTPUT
@@ -68,7 +69,7 @@ runs:
       cat diff.patch
 
   - name: Add PR comment w/ diff
-    uses: ${{ github.action_path }}/../comment-on-pr
+    uses: ppat/homelab-ops-actions/actions/comment-on-pr@flux-diff
     if: ${{ steps.diff.outputs.diff != '' }}
     continue-on-error: true
     with:
