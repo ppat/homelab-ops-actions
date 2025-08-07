@@ -49,8 +49,8 @@ runs:
         --log-level ${{ inputs.log_level }}
         diff ${{ inputs.resource_type }}
         --unified 6
-        --path ${{ inputs.path_after }}
-        --path-orig ${{ inputs.path_before }}
+        --path /github/workspace/${{ inputs.path_after }}
+        --path-orig /github/workspace/${{ inputs.path_before }}
         ${{ inputs.skip_params }}
         --strip-attrs ${{ inputs.strip_attrs }}
         --limit-bytes 10000
