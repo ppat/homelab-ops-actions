@@ -1,0 +1,80 @@
+---
+name: Flux Diff
+description: Run flux-local diff against before and after versions of a kubernetes manifest paths
+author: homelab-ops@homelab-ops.com
+
+inputs:
+  log_level:
+    required: false
+    type: string
+    default: INFO
+  message_id:
+    required: true
+    type: string
+  other_params:
+    required: false
+    type: string
+    default: ""
+  path_after:
+    required: true
+    type: string
+  path_before:
+    required: true
+    type: string
+  resource_type:
+    required: true
+    type: string
+  skip_params:
+    required: false
+    type: string
+    default: "--skip-crds --skip-secrets"
+  sources:
+    required: true
+    type: string
+  strip_attrs:
+    required: false
+    type: string
+    default: "helm.sh/chart,checksum/config,app.kubernetes.io/version,chart"
+  token:
+    required: true
+    type: string
+
+runs:
+  using: composite
+  steps:
+  - name: Run flux-local diff
+    uses: docker://ghcr.io/allenporter/flux-local:v7.5.4@sha256:72dbdeabca1eb4d1a053c78dfa0d1d8e2a4c4aee2c8d3938db1a382d22b0a6f9
+    with:
+      args: >-
+        --log-level ${{ inputs.log_level }}
+        diff ${{ inputs.resource_type }}
+        --unified 6
+        --path ${{ inputs.path_after }}
+        --path-orig ${{ inputs.path_before }}
+        ${{ inputs.skip_params }}
+        --strip-attrs ${{ inputs.strip_attrs }}
+        --limit-bytes 10000
+        --all-namespaces
+        --sources ${{ inputs.sources }}
+        --output-file diff.patch
+        ${{ inputs.other_params }}
+
+  - name: Generate Diff
+    id: diff
+    run: |
+      echo 'diff<<EOF' >> $GITHUB_OUTPUT
+      cat diff.patch >> $GITHUB_OUTPUT
+      echo 'EOF' >> $GITHUB_OUTPUT
+      cat diff.patch
+
+  - name: Add PR comment w/ diff
+    uses: ./actions/comment-on-pr
+    if: ${{ steps.diff.outputs.diff != '' }}
+    continue-on-error: true
+    with:
+      message: |
+        `````diff
+        ${{ steps.diff.outputs.diff }}
+        `````
+      message_id: ${{ inputs.message_id }}
+      token: ${{ inputs.token }}
