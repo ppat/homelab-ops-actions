@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.0.2](https://github.com/ppat/homelab-ops-actions/compare/v0.0.1...v0.0.2) (2025-08-07)
+
+
+### 🧹 Miscellaneous
+
+* **github-actions:** update ppat/github-workflows (v1.1.1 -&gt; v2.0.0) ([#5](https://github.com/ppat/homelab-ops-actions/issues/5)) ([8f7d21a](https://github.com/ppat/homelab-ops-actions/commit/8f7d21a8ccb9b7605e5c0a07dfe4aadbe45bf589))
+
+
+### ✨ Features
+
+* add actions - flux-diff and comment-on-pr ([#7](https://github.com/ppat/homelab-ops-actions/issues/7)) ([2b70fe7](https://github.com/ppat/homelab-ops-actions/commit/2b70fe71d560f4e1d7f882a75fb3f05b09e826e9))
+
 ## 0.0.1 (2025-08-03)
 
 
