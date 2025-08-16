@@ -55,7 +55,7 @@ runs:
   using: composite
   steps:
   - name: Checkout tools
-    uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+    uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
     with:
       fetch-depth: 1
       path: tools
@@ -64,7 +64,7 @@ runs:
       persist-credentials: false
 
   - name: Checkout current
-    uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+    uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
     with:
       fetch-depth: ${{ inputs.current_fetch_depth }}
       path: current
@@ -74,7 +74,7 @@ runs:
       token: ${{ inputs.token }}
 
   - name: Cache - mise
-    uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+    uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4
     with:
       path: ~/.local/share/mise
       key: mise-${{hashFiles('tools/mise.toml')}}-${{hashFiles('current/mise.toml')}}
@@ -84,7 +84,7 @@ runs:
 
   - name: Cache - extra
     if: ${{ inputs.extra_cache_path != '' }}
-    uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+    uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4
     with:
       path: ${{ inputs.extra_cache_path }}
       key: ${{ inputs.extra_cache_key }}
