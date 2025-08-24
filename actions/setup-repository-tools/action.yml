@@ -26,10 +26,6 @@ inputs:
     required: false
     type: string
     default: ""
-  extra_cache_restore_keys:
-    required: false
-    type: string
-    default: ""
   mise_ignore_cfg:
     required: false
     type: string
@@ -73,22 +69,27 @@ runs:
       persist-credentials: ${{ inputs.current_persist_credentials }}
       token: ${{ inputs.token }}
 
+  - name: Set cache key
+    id: cache-key
+    shell: bash
+    run: echo "cache_key=$(date +'%Y-%m')" >> "$GITHUB_OUTPUT"
+
   - name: Cache - mise
     uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4
     with:
       path: ~/.local/share/mise
-      key: mise-${{hashFiles('tools/mise.toml')}}-${{hashFiles('current/mise.toml')}}
+      # yamllint disable-line rule:line-length
+      key: mise-${{ steps.cache-key.outputs.cache_key }}-${{hashFiles('tools/mise.toml')}}-${{hashFiles('current/mise.toml')}}
       restore-keys: |
-        mise-${{hashFiles('tools/mise.toml')}}
-        mise-
+        mise-${{ steps.cache-key.outputs.cache_key }}-${{hashFiles('tools/mise.toml')}}
+        mise-${{ steps.cache-key.outputs.cache_key }}-
 
   - name: Cache - extra
     if: ${{ inputs.extra_cache_path != '' }}
     uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4
     with:
       path: ${{ inputs.extra_cache_path }}
-      key: ${{ inputs.extra_cache_key }}
-      restore-keys: ${{ inputs.extra_cache_restore_keys }}
+      key: ${{ inputs.extra_cache_key }}-${{ steps.cache-key.outputs.cache_key }}
 
   - name: Setup default mise configuration
     shell: bash
