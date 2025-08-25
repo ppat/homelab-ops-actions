@@ -21,9 +21,9 @@
     "helpers:pinGitHubActionDigests",
     "mergeConfidence:age-confidence-badges",
     "mergeConfidence:all-badges",
-    "github>ppat/renovate-presets#v0.0.3",
-    "github>ppat/renovate-presets:dev-tools#v0.0.3",
-    "github>ppat/renovate-presets:github-actions#v0.0.3"
+    "github>ppat/renovate-presets#v0.0.4",
+    "github>ppat/renovate-presets:dev-tools#v0.0.4",
+    "github>ppat/renovate-presets:github-actions#v0.0.4"
   ],
   "internalChecksFilter": "strict",
   "labels": [
