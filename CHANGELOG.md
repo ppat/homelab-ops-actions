@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.0.4](https://github.com/ppat/homelab-ops-actions/compare/v0.0.3...v0.0.4) (2025-08-25)
+
+
+### 🧹 Miscellaneous
+
+* **github-actions:** update ppat/github-workflows (v2.0.1 -&gt; v2.0.3) ([#13](https://github.com/ppat/homelab-ops-actions/issues/13)) ([7e9410d](https://github.com/ppat/homelab-ops-actions/commit/7e9410dddc2c8264d7b58e50afddd97bea896845))
+
+
+### 🚀 Enhancements + Bug Fixes
+
+* update ppat/renovate-presets (v0.0.3 -&gt; v0.0.4) ([#14](https://github.com/ppat/homelab-ops-actions/issues/14)) ([7b9e089](https://github.com/ppat/homelab-ops-actions/commit/7b9e08997bec7e583fb5098132751747c0ff5f4f))
+
 ## [0.0.3](https://github.com/ppat/homelab-ops-actions/compare/v0.0.2...v0.0.3) (2025-08-24)
 
 
