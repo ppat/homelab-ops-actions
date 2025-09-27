@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.0.4](https://github.com/ppat/homelab-ops-actions/compare/v0.0.3...v0.0.4) (2025-09-27)
+
+
+### 🧹 Miscellaneous
+
+* **dev-tools:** update pre-commit/pre-commit-hooks (major) ([#17](https://github.com/ppat/homelab-ops-actions/issues/17)) ([dda5433](https://github.com/ppat/homelab-ops-actions/commit/dda54332e942f9a2342d00b79b185aa42c32db96))
+* **github-actions:** update ghcr.io/allenporter/flux-local (v7.8.0 -&gt; v7.10.0) ([#16](https://github.com/ppat/homelab-ops-actions/issues/16)) ([603a943](https://github.com/ppat/homelab-ops-actions/commit/603a943b8ebd2755e6fc81e02673f9b666b8074f))
+* **github-actions:** update jdx/mise-action (v2.4.4 -&gt; v3.2.0) ([#19](https://github.com/ppat/homelab-ops-actions/issues/19)) ([409f884](https://github.com/ppat/homelab-ops-actions/commit/409f88437e5646f351f91a5f94050f532b38aff8))
+* **github-actions:** update ppat/github-workflows (v2.0.1 -&gt; v2.0.3) ([#13](https://github.com/ppat/homelab-ops-actions/issues/13)) ([7e9410d](https://github.com/ppat/homelab-ops-actions/commit/7e9410dddc2c8264d7b58e50afddd97bea896845))
+* **github-actions:** update ppat/github-workflows (v2.0.3 -&gt; v2.1.1) ([#20](https://github.com/ppat/homelab-ops-actions/issues/20)) ([878fc6d](https://github.com/ppat/homelab-ops-actions/commit/878fc6d5825708e4373f8e8112512542fbf3b52a))
+
+
+### 🚀 Enhancements + Bug Fixes
+
+* update ppat/renovate-presets (v0.0.3 -&gt; v0.0.4) ([#14](https://github.com/ppat/homelab-ops-actions/issues/14)) ([7b9e089](https://github.com/ppat/homelab-ops-actions/commit/7b9e08997bec7e583fb5098132751747c0ff5f4f))
+
 ## [0.0.3](https://github.com/ppat/homelab-ops-actions/compare/v0.0.2...v0.0.3) (2025-08-24)
 
 
