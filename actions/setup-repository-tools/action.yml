@@ -59,23 +59,23 @@ runs:
       token: ${{ inputs.token }}
 
   - name: Setup default mise configuration
-    if: ${{ inputs.mise_toml != '' }}
     env:
       MISE_TOML: ${{ inputs.mise_toml }}
       MISE_LOG_LEVEL: ${{ inputs.mise_log_level }}
     shell: bash
     # yamllint disable-line rule:indentation
     run: |
-      mkdir -p $GITHUB_WORKSPACE/tools
-      cat <<EOF > $GITHUB_WORKSPACE/tools/mise.toml
-      ${MISE_TOML}
-      EOF
+      if [[ "${MISE_TOML}" != "" ]]; then
+        echo "Setting up default mise configuration..."
+        mkdir -p ~/.config/mise
+        cat <<EOF > ~/.config/mise/config.toml
+        ${MISE_TOML}
+        EOF
 
-      mkdir -p ~/.config/mise
-      ln -s $GITHUB_WORKSPACE/tools/mise.toml ~/.config/mise/config.toml
-
-      if [[ "${MISE_LOG_LEVEL}" == "debug" ]]; then
+        echo
         cat ~/.config/mise/config.toml
+      else
+        echo "No default mise configuration provided... skipping."
       fi
 
   - name: Set cache key
@@ -88,9 +88,8 @@ runs:
     with:
       path: ~/.local/share/mise
       # yamllint disable-line rule:line-length
-      key: mise-${{ steps.cache-key.outputs.cache_key }}-${{hashFiles('tools/mise.toml')}}-${{hashFiles('current/mise.toml')}}
+      key: mise-${{ steps.cache-key.outputs.cache_key }}-${{hashFiles('current/mise.toml')}}
       restore-keys: |
-        mise-${{ steps.cache-key.outputs.cache_key }}-${{hashFiles('tools/mise.toml')}}
         mise-${{ steps.cache-key.outputs.cache_key }}-
 
   - name: Cache - extra
