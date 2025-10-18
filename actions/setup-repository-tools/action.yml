@@ -37,6 +37,7 @@ inputs:
   mise_toml:
     required: false
     type: string
+    default: ""
   mise_version:
     required: true
     type: string
