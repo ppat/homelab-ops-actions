@@ -70,7 +70,7 @@ runs:
         mkdir -p ~/.config/mise
         echo "${MISE_TOML}" > ~/.config/mise/config.toml
         echo
-        cat ~/.config/mise/config.toml
+        cat ~/.config/mise/config.toml | pr -t -o 4
       else
         echo "No default mise configuration provided... skipping."
       fi
