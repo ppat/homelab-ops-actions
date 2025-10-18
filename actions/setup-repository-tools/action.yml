@@ -34,31 +34,20 @@ inputs:
     required: false
     type: string
     default: "info"
+  mise_toml:
+    required: false
+    type: string
+    default: ""
   mise_version:
     required: true
     type: string
   token:
     required: true
     type: string
-  tools_git_ref:
-    required: true
-    type: string
-  tools_repository:
-    required: true
-    type: string
 
 runs:
   using: composite
   steps:
-  - name: Checkout tools
-    uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
-    with:
-      fetch-depth: 1
-      path: tools
-      repository: ${{ inputs.tools_repository }}
-      ref: ${{ inputs.tools_git_ref }}
-      persist-credentials: false
-
   - name: Checkout current
     uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
     with:
@@ -79,9 +68,8 @@ runs:
     with:
       path: ~/.local/share/mise
       # yamllint disable-line rule:line-length
-      key: mise-${{ steps.cache-key.outputs.cache_key }}-${{hashFiles('tools/mise.toml')}}-${{hashFiles('current/mise.toml')}}
+      key: mise-${{ steps.cache-key.outputs.cache_key }}-${{hashFiles('current/mise.toml')}}
       restore-keys: |
-        mise-${{ steps.cache-key.outputs.cache_key }}-${{hashFiles('tools/mise.toml')}}
         mise-${{ steps.cache-key.outputs.cache_key }}-
 
   - name: Cache - extra
@@ -90,13 +78,6 @@ runs:
     with:
       path: ${{ inputs.extra_cache_path }}
       key: ${{ inputs.extra_cache_key }}-${{ steps.cache-key.outputs.cache_key }}
-
-  - name: Setup default mise configuration
-    shell: bash
-    # yamllint disable-line rule:indentation
-    run: |
-      mkdir -p ~/.config/mise
-      ln -s $GITHUB_WORKSPACE/tools/mise.toml ~/.config/mise/config.toml
 
   - name: Setup mise
     uses: jdx/mise-action@e3d7b8d67a7958d1207f6ed871e83b1ea780e7b0 # v3.3.1
@@ -111,3 +92,4 @@ runs:
       experimental: true
       log_level: ${{ inputs.mise_log_level }}
       working_directory: ${{ github.workspace }}/current
+      mise_toml: ${{ inputs.mise_toml }}
