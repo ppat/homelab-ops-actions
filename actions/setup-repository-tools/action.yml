@@ -68,10 +68,7 @@ runs:
       if [[ "${MISE_TOML}" != "" ]]; then
         echo "Setting up default mise configuration..."
         mkdir -p ~/.config/mise
-        cat <<EOF > ~/.config/mise/config.toml
-        ${MISE_TOML}
-        EOF
-
+        echo "${MISE_TOML}" > ~/.config/mise/config.toml
         echo
         cat ~/.config/mise/config.toml
       else
