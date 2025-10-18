@@ -35,7 +35,7 @@ inputs:
     type: string
     default: "info"
   mise_toml:
-    required: true
+    required: false
     type: string
   mise_version:
     required: true
@@ -58,6 +58,7 @@ runs:
       token: ${{ inputs.token }}
 
   - name: Setup default mise configuration
+    if: ${{ inputs.mise_toml != '' }}
     env:
       MISE_TOML: ${{ inputs.mise_toml }}
       MISE_LOG_LEVEL: ${{ inputs.mise_log_level }}
