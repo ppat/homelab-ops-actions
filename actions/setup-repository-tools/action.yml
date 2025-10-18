@@ -34,31 +34,19 @@ inputs:
     required: false
     type: string
     default: "info"
+  mise_toml:
+    required: true
+    type: string
   mise_version:
     required: true
     type: string
   token:
     required: true
     type: string
-  tools_git_ref:
-    required: true
-    type: string
-  tools_repository:
-    required: true
-    type: string
 
 runs:
   using: composite
   steps:
-  - name: Checkout tools
-    uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
-    with:
-      fetch-depth: 1
-      path: tools
-      repository: ${{ inputs.tools_repository }}
-      ref: ${{ inputs.tools_git_ref }}
-      persist-credentials: false
-
   - name: Checkout current
     uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
     with:
@@ -68,6 +56,25 @@ runs:
       ref: ${{ inputs.current_git_ref }}
       persist-credentials: ${{ inputs.current_persist_credentials }}
       token: ${{ inputs.token }}
+
+  - name: Setup default mise configuration
+    env:
+      MISE_TOML: ${{ inputs.mise_toml }}
+      MISE_LOG_LEVEL: ${{ inputs.mise_log_level }}
+    shell: bash
+    # yamllint disable-line rule:indentation
+    run: |
+      mkdir -p $GITHUB_WORKSPACE/tools
+      cat <<EOF > $GITHUB_WORKSPACE/tools/mise.toml
+      ${MISE_TOML}
+      EOF
+
+      mkdir -p ~/.config/mise
+      ln -s $GITHUB_WORKSPACE/tools/mise.toml ~/.config/mise/config.toml
+
+      if [[ "${MISE_LOG_LEVEL}" == "debug" ]]; then
+        cat ~/.config/mise/config.toml
+      fi
 
   - name: Set cache key
     id: cache-key
@@ -90,13 +97,6 @@ runs:
     with:
       path: ${{ inputs.extra_cache_path }}
       key: ${{ inputs.extra_cache_key }}-${{ steps.cache-key.outputs.cache_key }}
-
-  - name: Setup default mise configuration
-    shell: bash
-    # yamllint disable-line rule:indentation
-    run: |
-      mkdir -p ~/.config/mise
-      ln -s $GITHUB_WORKSPACE/tools/mise.toml ~/.config/mise/config.toml
 
   - name: Setup mise
     uses: jdx/mise-action@e3d7b8d67a7958d1207f6ed871e83b1ea780e7b0 # v3.3.1
