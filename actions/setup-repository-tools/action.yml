@@ -58,23 +58,6 @@ runs:
       persist-credentials: ${{ inputs.current_persist_credentials }}
       token: ${{ inputs.token }}
 
-  - name: Setup default mise configuration
-    env:
-      MISE_TOML: ${{ inputs.mise_toml }}
-      MISE_LOG_LEVEL: ${{ inputs.mise_log_level }}
-    shell: bash
-    # yamllint disable-line rule:indentation
-    run: |
-      if [[ "${MISE_TOML}" != "" ]]; then
-        echo "Setting up default mise configuration..."
-        mkdir -p ~/.config/mise
-        echo "${MISE_TOML}" > ~/.config/mise/config.toml
-        echo
-        cat ~/.config/mise/config.toml | pr -t -o 4
-      else
-        echo "No default mise configuration provided... skipping."
-      fi
-
   - name: Set cache key
     id: cache-key
     shell: bash
@@ -109,3 +92,4 @@ runs:
       experimental: true
       log_level: ${{ inputs.mise_log_level }}
       working_directory: ${{ github.workspace }}/current
+      mise_toml: ${{ inputs.mise_toml }}
