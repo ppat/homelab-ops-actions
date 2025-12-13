@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.2](https://github.com/ppat/homelab-ops-actions/compare/v1.0.1...v1.0.2) (2025-12-13)
+
+
+### 🧹 Miscellaneous
+
+* **dev-tools:** update davidanson/markdownlint-cli2 (non-major) ([#35](https://github.com/ppat/homelab-ops-actions/issues/35)) ([791dbb5](https://github.com/ppat/homelab-ops-actions/commit/791dbb5a42f311a0962f351c4a437be6000c71f1))
+* **github-actions:** update digest actions/checkout (08eba0b -&gt; 34e1148) ([#34](https://github.com/ppat/homelab-ops-actions/issues/34)) ([d00df6a](https://github.com/ppat/homelab-ops-actions/commit/d00df6acd0e3d7575cbd9e5afc371df1a3e63044))
+* **github-actions:** update jdx/mise-action (v3.3.1 -&gt; v3.4.0) ([#36](https://github.com/ppat/homelab-ops-actions/issues/36)) ([aa5b62a](https://github.com/ppat/homelab-ops-actions/commit/aa5b62af177960ae903ab2980d82ff66c8b47afd))
+* **github-actions:** update ppat/github-workflows (v3.0.0 -&gt; v3.0.1) ([#31](https://github.com/ppat/homelab-ops-actions/issues/31)) ([19826a3](https://github.com/ppat/homelab-ops-actions/commit/19826a34c303c5b9b52f2d6c9a1beab46df79448))
+
 ## [1.0.1](https://github.com/ppat/homelab-ops-actions/compare/v1.0.0...v1.0.1) (2025-10-21)
 
 
