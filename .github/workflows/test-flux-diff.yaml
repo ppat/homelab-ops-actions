@@ -46,7 +46,7 @@ jobs:
         path_after: ci/test-data/flux-diff/after
         path_before: ci/test-data/flux-diff/before
         resource_type: ${{ matrix.resource }}
-        sources: "test-source=./"
+        sources: "test-source=./ci/test-data/flux-diff"
 
     - name: Comment on PR w/ diff
       uses: ./actions/comment-on-pr/

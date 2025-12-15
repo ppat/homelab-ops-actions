@@ -5,8 +5,7 @@ metadata:
   name: modules
   namespace: flux-system
 spec:
-  interval: 15m0s
-  path: ../modules
+  path: ./modules
   postBuild:
     substitute:
       secret_store: before-store
@@ -15,5 +14,4 @@ spec:
     kind: GitRepository
     name: test-source
     namespace: flux-system
-  timeout: 2m0s
   wait: false
