@@ -14,7 +14,7 @@ spec:
         kind: HelmRepository
         name: grafana-repository
         namespace: flux-system
-      version: 10.0.0
+      version: ${grafana_version}
   releaseName: grafana
   targetNamespace: monitoring
 

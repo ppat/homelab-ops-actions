@@ -5,13 +5,17 @@ metadata:
   name: modules
   namespace: flux-system
 spec:
-  path: ./ci/test-data/flux-diff/before/modules
+  interval: 5m0s
+  path: ./ci/test-data/flux-diff/modules
   postBuild:
     substitute:
-      secret_store: before-store
-      domain_name: before.example.com
+      domain_name: after.example.com
+      grafana_version: 10.3.1
+      secret_store: after-store
+  prune: false
   sourceRef:
     kind: GitRepository
     name: test-source
     namespace: flux-system
+  timeout: 2m0s
   wait: false
