@@ -1,0 +1,57 @@
+---
+# yamllint disable rule:line-length
+name: test-setup-repository-tools
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+    - '.github/workflows/test-setup-repository-tools.yaml'
+    - 'actions/setup-repository-tools/*'
+    - 'ci/test-data/setup-repository-tools/*'
+  schedule:
+  - cron: '0 4 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  # renovate: datasource=github-releases depName=astral-sh/uv
+  UV_VERSION: "0.9.17"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+    - name: Checkout
+      uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      with:
+        fetch-depth: 1
+        persist-credentials: false
+
+    - name: Setup repository and tools
+      uses: ./actions/setup-repository-tools
+      with:
+        current_git_ref: ${{ github.head_ref || github.ref }}
+        current_repository: ${{ github.repository }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        mise_toml: |
+          [tools]
+          uv  = "${{ env.UV_VERSION }}"
+          [settings.pipx]
+          uvx = true
+
+    - name: Test running tools installed via mise
+      shell: bash
+      working-directory: ./current/ci/test-data/setup-repository-tools
+      # yamllint disable-line rule:indentation
+      run: |
+        # yamllint installation requires both inline mise_toml provided above (for uv) and test data mise.toml
+        yamllint -c ../../../../.yamllint --list-files --strict --format github .github/workflows/
+        mise ls

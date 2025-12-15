@@ -39,8 +39,10 @@ inputs:
     type: string
     default: ""
   mise_version:
-    required: true
+    required: false
     type: string
+    # renovate: datasource=github-releases depName=jdx/mise
+    default: "v2025.11.4"
   token:
     required: true
     type: string
