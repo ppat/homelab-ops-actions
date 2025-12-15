@@ -5,11 +5,11 @@ metadata:
   name: modules
   namespace: flux-system
 spec:
-  path: ./modules
+  path: ./before/modules
   postBuild:
     substitute:
-      secret_store: after-store
-      domain_name: after.example.com
+      secret_store: before-store
+      domain_name: before.example.com
   sourceRef:
     kind: GitRepository
     name: test-source
