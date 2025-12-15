@@ -5,7 +5,7 @@ metadata:
   name: modules
   namespace: flux-system
 spec:
-  path: ./after/modules
+  path: ./ci/test-data/flux-diff/after/modules
   postBuild:
     substitute:
       secret_store: after-store
