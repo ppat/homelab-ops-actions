@@ -1,0 +1,21 @@
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: modules
+  namespace: flux-system
+spec:
+  interval: 5m0s
+  path: ./ci/test-data/flux-diff/modules
+  postBuild:
+    substitute:
+      domain_name: after.example.com
+      grafana_version: 10.3.1
+      secret_store: after-store
+  prune: false
+  sourceRef:
+    kind: GitRepository
+    name: test-source
+    namespace: flux-system
+  timeout: 2m0s
+  wait: false

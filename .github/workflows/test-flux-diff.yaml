@@ -1,0 +1,61 @@
+---
+# yamllint disable rule:line-length
+name: test-flux-diff
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+    - .github/workflows/test-flux-diff.yaml
+    - actions/comment-on-pr/
+    - actions/flux-diff/
+    - ci/test-data/flux-diff/
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  diff:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        resource:
+        - helmrelease
+        - kustomization
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      with:
+        fetch-depth: 1
+        persist-credentials: false
+
+    - name: Flux Diff
+      id: flux-diff
+      uses: ./actions/flux-diff/
+      with:
+        log_level: DEBUG
+        other_params: ${{ matrix.resource == 'helmrelease' && '--api-versions monitoring.coreos.com/v1' || '' }}
+        path_after: ci/test-data/flux-diff/after
+        path_before: ci/test-data/flux-diff/before
+        resource_type: ${{ matrix.resource }}
+        sources: "test-source=./"
+
+    - name: Comment on PR w/ diff
+      uses: ./actions/comment-on-pr/
+      if: ${{ steps.flux-diff.outputs.diff != '' }}
+      continue-on-error: true
+      with:
+        message: |
+          `````diff
+          ${{ steps.flux-diff.outputs.diff }}
+          `````
+        message_id: "${{ github.event.pull_request.number }}/${{ matrix.resource }}"
+        token: ${{ secrets.GITHUB_TOKEN }}

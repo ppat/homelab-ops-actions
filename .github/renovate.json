@@ -29,6 +29,15 @@
   "labels": [
     "pr-type:renovate"
   ],
+  "packageRules": [
+    {
+      "description": "do not update test data",
+      "enabled": false,
+      "matchFileNames": [
+        "ci/test-data/**"
+      ]
+    }
+  ],
   "prConcurrentLimit": 0,
   "prHourlyLimit": 0,
   "printConfig": true,
