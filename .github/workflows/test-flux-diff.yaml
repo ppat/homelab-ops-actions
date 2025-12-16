@@ -53,8 +53,7 @@ jobs:
 
     - name: Comment on PR w/ diff
       uses: ./actions/comment-on-pr/
-      if: ${{ steps.flux-diff.outputs.diff != '' }}
-      continue-on-error: true
+      if: ${{ github.event_name == 'pull_request' && steps.flux-diff.outputs.diff != '' }}
       with:
         message: |
           `````diff
