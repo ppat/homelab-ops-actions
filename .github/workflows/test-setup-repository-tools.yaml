@@ -40,6 +40,7 @@ jobs:
       with:
         current_git_ref: ${{ github.head_ref || github.ref }}
         current_repository: ${{ github.repository }}
+        current_dir: ci/test-data/setup-repository-tools
         token: ${{ secrets.GITHUB_TOKEN }}
         mise_toml: |
           [tools]
@@ -53,5 +54,6 @@ jobs:
       # yamllint disable-line rule:indentation
       run: |
         # yamllint installation requires both inline mise_toml provided above (for uv) and test data mise.toml
-        yamllint -c ../../../../.yamllint --list-files --strict --format github .github/workflows/
         mise ls
+        yamllint --version
+        mise x yamllint -- --version
