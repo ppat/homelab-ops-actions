@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.0.3](https://github.com/ppat/homelab-ops-actions/compare/v1.0.2...v1.0.3) (2025-12-16)
+
+
+### 🧹 Miscellaneous
+
+* **dev-tools:** update davidanson/markdownlint-cli2 (non-major) ([#41](https://github.com/ppat/homelab-ops-actions/issues/41)) ([604828f](https://github.com/ppat/homelab-ops-actions/commit/604828fa43e10ed17ae74392f58b56b3b9deaa82))
+* **dev-tools:** update jdx/mise (v2025.11.4 -&gt; v2025.12.2) ([#46](https://github.com/ppat/homelab-ops-actions/issues/46)) ([d52791d](https://github.com/ppat/homelab-ops-actions/commit/d52791d12c3ce5d419f7de0334e612320e9bf98e))
+* **github-actions:** update ghcr.io/allenporter/flux-local (v7.10.1 -&gt; v8.0.1) ([#33](https://github.com/ppat/homelab-ops-actions/issues/33)) ([d718aa1](https://github.com/ppat/homelab-ops-actions/commit/d718aa1199e2d0d0a8e38e7f2b013e389e3dce0d))
+* **github-actions:** update jdx/mise-action (v3.4.0 -&gt; v3.4.1) ([#40](https://github.com/ppat/homelab-ops-actions/issues/40)) ([926576f](https://github.com/ppat/homelab-ops-actions/commit/926576f7e2b50e721aa0ff3e55af0f3fe3805392))
+* **github-actions:** update ppat/github-workflows (v3.0.1 -&gt; v3.1.0) ([#37](https://github.com/ppat/homelab-ops-actions/issues/37)) ([dffabac](https://github.com/ppat/homelab-ops-actions/commit/dffabac6f3e3f31e2c58c6bb0762fd845cc7e203))
+
+
+### 🛠 Improvements
+
+* add test for setup-repository-tools action ([#43](https://github.com/ppat/homelab-ops-actions/issues/43)) ([15cb9da](https://github.com/ppat/homelab-ops-actions/commit/15cb9da779346a07b925731e4b2e1b0a95207cac))
+* add tests for flux-diff + comment-on-pr github actions ([#39](https://github.com/ppat/homelab-ops-actions/issues/39)) ([e1cd2ac](https://github.com/ppat/homelab-ops-actions/commit/e1cd2ac76a1fc2ada94333527ef11f8b8c27af2a))
+* fix flux-diff test issue when run on workflow dispatch or schedule ([#45](https://github.com/ppat/homelab-ops-actions/issues/45)) ([c708fe3](https://github.com/ppat/homelab-ops-actions/commit/c708fe38a426d71d4de82f614acef2310d425037))
+* minor changes to flux-diff test ([#44](https://github.com/ppat/homelab-ops-actions/issues/44)) ([bb27699](https://github.com/ppat/homelab-ops-actions/commit/bb2769934d7efeaaaac06320d9b5cb4d3d93382b))
+
 ## [1.0.2](https://github.com/ppat/homelab-ops-actions/compare/v1.0.1...v1.0.2) (2025-12-13)
 
 
