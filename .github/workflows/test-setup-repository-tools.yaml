@@ -56,4 +56,4 @@ jobs:
         # yamllint installation requires both inline mise_toml provided above (for uv) and test data mise.toml
         mise ls
         yamllint --version
-        mise x yamllint -- --version
+        which yamllint
