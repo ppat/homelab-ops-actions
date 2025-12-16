@@ -18,6 +18,10 @@ inputs:
   current_repository:
     required: true
     type: string
+  current_dir:
+    required: false
+    type: string
+    default: ""
   extra_cache_path:
     required: false
     type: string
@@ -39,8 +43,10 @@ inputs:
     type: string
     default: ""
   mise_version:
-    required: true
+    required: false
     type: string
+    # renovate: datasource=github-releases depName=jdx/mise
+    default: "v2025.11.4"
   token:
     required: true
     type: string
@@ -91,5 +97,5 @@ runs:
       cache: false
       experimental: true
       log_level: ${{ inputs.mise_log_level }}
-      working_directory: ${{ github.workspace }}/current
+      working_directory: ${{ github.workspace }}/current/${{ inputs.current_dir }}
       mise_toml: ${{ inputs.mise_toml }}
