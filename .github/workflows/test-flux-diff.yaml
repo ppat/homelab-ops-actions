@@ -10,6 +10,9 @@ on:
     - 'actions/comment-on-pr/*'
     - 'actions/flux-diff/*'
     - 'ci/test-data/flux-diff/**/*'
+  schedule:
+  - cron: '0 4 * * 1'
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -20,7 +23,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  diff:
+  test:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     strategy:
