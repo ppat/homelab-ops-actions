@@ -19,7 +19,7 @@ concurrency:
 
 env:
   # renovate: datasource=github-releases depName=astral-sh/uv
-  UV_VERSION: "0.10.0"
+  UV_VERSION: "0.10.2"
 
 permissions:
   contents: read
