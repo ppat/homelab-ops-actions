@@ -23,7 +23,7 @@
     "mergeConfidence:all-badges",
     "github>ppat/renovate-presets#v0.2.0",
     "github>ppat/renovate-presets:dev-tools#v0.2.0",
-    "github>ppat/renovate-presets:github-actions#v0.2.0"
+    "github>ppat/renovate-presets:github-actions-provider#v0.2.0"
   ],
   "internalChecksFilter": "strict",
   "labels": [
