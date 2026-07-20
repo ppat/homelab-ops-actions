@@ -1,5 +1,33 @@
 # Changelog
 
+## [2.1.0](https://github.com/ppat/homelab-ops-actions/compare/v2.0.0...v2.1.0) (2026-07-20)
+
+
+### 🧹 Miscellaneous
+
+* **dev-tools:** update davidanson/markdownlint-cli2 (non-major) ([#143](https://github.com/ppat/homelab-ops-actions/issues/143)) ([f932d9a](https://github.com/ppat/homelab-ops-actions/commit/f932d9a26656c4195df333a71b960034a97c3bcc))
+* **dev-tools:** update jdx/mise (v2026.7.0 -&gt; v2026.7.5) ([#140](https://github.com/ppat/homelab-ops-actions/issues/140)) ([859e72a](https://github.com/ppat/homelab-ops-actions/commit/859e72a3244b91cc8a5bb61fff00b1cf9d6071fe))
+* **dev-tools:** update jdx/mise (v2026.7.5 -&gt; v2026.7.7) ([#144](https://github.com/ppat/homelab-ops-actions/issues/144)) ([9d4a8e3](https://github.com/ppat/homelab-ops-actions/commit/9d4a8e3cf1e4ff9956059223e9d55c36194de723))
+
+
+### 🛠 Improvements
+
+* add CLAUDE.md, DESIGN.md, and per-action READMEs ([#142](https://github.com/ppat/homelab-ops-actions/issues/142)) ([680c0da](https://github.com/ppat/homelab-ops-actions/commit/680c0dad4a7b824ad4a4dc27c7767639b330285a))
+
+
+### ✨ Features
+
+* **github-actions:** update ppat/github-workflows (v3.3.1 -&gt; v4.0.0) ([#136](https://github.com/ppat/homelab-ops-actions/issues/136)) ([df8dff2](https://github.com/ppat/homelab-ops-actions/commit/df8dff2c09eed975cedfc2279c3a65f2b79dc072))
+* **github-actions:** update ppat/github-workflows (v4.0.0 -&gt; v4.1.0) ([#146](https://github.com/ppat/homelab-ops-actions/issues/146)) ([396dfac](https://github.com/ppat/homelab-ops-actions/commit/396dfac51fea58f29711dbf26c3413e46d4e898d))
+
+
+### 🚀 Enhancements + Bug Fixes
+
+* **dev-tools:** update astral-sh/uv (0.11.26 -&gt; 0.11.28) ([#139](https://github.com/ppat/homelab-ops-actions/issues/139)) ([f482c06](https://github.com/ppat/homelab-ops-actions/commit/f482c063d21cc7c8af4b068f19c9dfe73b5f697a))
+* **dev-tools:** update astral-sh/uv (0.11.28 -&gt; 0.11.29) ([#141](https://github.com/ppat/homelab-ops-actions/issues/141)) ([32284eb](https://github.com/ppat/homelab-ops-actions/commit/32284eb483cbfc4ca75672941245b1f145efb2e1))
+* **github-actions:** update jdx/mise-action (v4.2.0 -&gt; v4.2.1) ([#145](https://github.com/ppat/homelab-ops-actions/issues/145)) ([dba90c1](https://github.com/ppat/homelab-ops-actions/commit/dba90c1577dfb0c360f880265d4179e6c5879af9))
+* update ppat/renovate-presets (v0.2.0 -&gt; v0.2.1) ([#135](https://github.com/ppat/homelab-ops-actions/issues/135)) ([9cecb32](https://github.com/ppat/homelab-ops-actions/commit/9cecb32e6b3043d55e7825fb8b5106e4f5c4977c))
+
 ## [2.0.0](https://github.com/ppat/homelab-ops-actions/compare/v1.0.4...v2.0.0) (2026-07-03)
 
 
