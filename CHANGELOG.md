@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.2.0](https://github.com/ppat/homelab-ops-actions/compare/v2.1.0...v2.2.0) (2026-07-24)
+
+
+### ✨ Features
+
+* **github-actions:** update ppat/github-workflows (v4.1.0 -&gt; v4.2.0) ([#147](https://github.com/ppat/homelab-ops-actions/issues/147)) ([886e96c](https://github.com/ppat/homelab-ops-actions/commit/886e96c40c8aeee79f0dbce701cf9042b9341a44))
+
+
+### 🚀 Enhancements + Bug Fixes
+
+* **dev-tools:** update astral-sh/uv (0.11.29 -&gt; 0.11.31) ([#148](https://github.com/ppat/homelab-ops-actions/issues/148)) ([8561a6c](https://github.com/ppat/homelab-ops-actions/commit/8561a6cbe893c77db8d8ef3be7f489ed26c53480))
+
 ## [2.1.0](https://github.com/ppat/homelab-ops-actions/compare/v2.0.0...v2.1.0) (2026-07-20)
 
 
