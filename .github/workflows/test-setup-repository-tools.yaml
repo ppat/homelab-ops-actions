@@ -42,6 +42,8 @@ jobs:
         current_repository: ${{ github.repository }}
         current_dir: ci/test-data/setup-repository-tools
         token: ${{ secrets.GITHUB_TOKEN }}
+        extra_cache_path: ~/.cache/test-setup-repository-tools-extra
+        extra_cache_key: test-setup-repository-tools-extra
         mise_toml: |
           [tools]
           uv  = "${{ env.UV_VERSION }}"
@@ -57,3 +59,19 @@ jobs:
         mise ls
         yamllint --version
         which yamllint
+
+    - name: Test extra_cache_path accumulates across runs
+      shell: bash
+      # yamllint disable-line rule:indentation
+      run: |
+        # Exercises extra_cache_path/extra_cache_key (issue #155): appends this run's id to a
+        # marker file on every run. If the "Cache - extra" step regresses to an exact-hit-only
+        # key (no restore-keys / no per-run uniqueness), later runs restore the same snapshot
+        # forever and this log stops growing - inspect across runs to confirm it still does.
+        cache_dir=~/.cache/test-setup-repository-tools-extra
+        mkdir -p "$cache_dir"
+        echo "Marker log before this run:"
+        cat "$cache_dir/runs.log" 2>/dev/null || echo "(none - first run this month, or cache not yet populated)"
+        echo "${{ github.run_id }}-${{ github.run_attempt }}" >> "$cache_dir/runs.log"
+        echo "Marker log after this run:"
+        cat "$cache_dir/runs.log"
