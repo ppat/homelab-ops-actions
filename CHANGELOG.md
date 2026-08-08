@@ -1,5 +1,33 @@
 # Changelog
 
+## [2.2.0](https://github.com/ppat/homelab-ops-actions/compare/v2.1.0...v2.2.0) (2026-08-08)
+
+
+### 🧹 Miscellaneous
+
+* **dev-tools:** update davidanson/markdownlint-cli2 (non-major) ([#152](https://github.com/ppat/homelab-ops-actions/issues/152)) ([d21e276](https://github.com/ppat/homelab-ops-actions/commit/d21e2760d1856872cbe2f04b2a503ff267c52146))
+* **dev-tools:** update jdx/mise (v2026.7.15 -&gt; v2026.7.18) ([#156](https://github.com/ppat/homelab-ops-actions/issues/156)) ([4ad7a3d](https://github.com/ppat/homelab-ops-actions/commit/4ad7a3d492e721d9991e812f3dc83be92a22c483))
+* **dev-tools:** update jdx/mise (v2026.7.18 -&gt; v2026.8.2) ([#162](https://github.com/ppat/homelab-ops-actions/issues/162)) ([ce7c7d9](https://github.com/ppat/homelab-ops-actions/commit/ce7c7d9c89f79f0c0d3a3ea02bae19cc22327ab8))
+* **dev-tools:** update jdx/mise (v2026.7.7 -&gt; v2026.7.15) ([#153](https://github.com/ppat/homelab-ops-actions/issues/153)) ([671d2fe](https://github.com/ppat/homelab-ops-actions/commit/671d2fe5b27d855cbfdf646ebcc033e8ca780c6c))
+
+
+### ✨ Features
+
+* **dev-tools:** update astral-sh/uv (0.11.33 -&gt; 0.12.0) ([#157](https://github.com/ppat/homelab-ops-actions/issues/157)) ([4be9176](https://github.com/ppat/homelab-ops-actions/commit/4be9176f594abe9ae7a556d706cea7c1d907a2e6))
+* **github-actions:** update ppat/github-workflows (v4.1.0 -&gt; v4.2.0) ([#147](https://github.com/ppat/homelab-ops-actions/issues/147)) ([886e96c](https://github.com/ppat/homelab-ops-actions/commit/886e96c40c8aeee79f0dbce701cf9042b9341a44))
+
+
+### 🚀 Enhancements + Bug Fixes
+
+* **dev-tools:** update astral-sh/uv (0.11.29 -&gt; 0.11.31) ([#148](https://github.com/ppat/homelab-ops-actions/issues/148)) ([8561a6c](https://github.com/ppat/homelab-ops-actions/commit/8561a6cbe893c77db8d8ef3be7f489ed26c53480))
+* **dev-tools:** update astral-sh/uv (0.11.31 -&gt; 0.11.32) ([#151](https://github.com/ppat/homelab-ops-actions/issues/151)) ([2608e27](https://github.com/ppat/homelab-ops-actions/commit/2608e2758a054ff6bab72561302055dfbe5febf9))
+* **dev-tools:** update astral-sh/uv (0.11.32 -&gt; 0.11.33) ([#154](https://github.com/ppat/homelab-ops-actions/issues/154)) ([f07e28a](https://github.com/ppat/homelab-ops-actions/commit/f07e28a0b365293a0553d82d6953b58165fded98))
+* **dev-tools:** update astral-sh/uv (0.12.0 -&gt; 0.12.2) ([#158](https://github.com/ppat/homelab-ops-actions/issues/158)) ([9afdc8a](https://github.com/ppat/homelab-ops-actions/commit/9afdc8a78c3055411119235c6a3a5962334fffeb))
+* **dev-tools:** update astral-sh/uv (0.12.2 -&gt; 0.12.3) ([#160](https://github.com/ppat/homelab-ops-actions/issues/160)) ([71dca35](https://github.com/ppat/homelab-ops-actions/commit/71dca35fa9978c9eed9a9c644810ea6e65329641))
+* **github-actions:** update actions/checkout (v7.0.0 -&gt; v7.0.1) ([#150](https://github.com/ppat/homelab-ops-actions/issues/150)) ([0aab1f1](https://github.com/ppat/homelab-ops-actions/commit/0aab1f15018881e8b5a1168dd41aab889667671d))
+* **github-actions:** update jdx/mise-action (v4.2.1 -&gt; v4.2.4) ([#161](https://github.com/ppat/homelab-ops-actions/issues/161)) ([b50ddde](https://github.com/ppat/homelab-ops-actions/commit/b50dddec3392eb75ebd1e6e1dfaaccdee802a5f5))
+* give setup-repository-tools extra cache a per-run key with restore-keys ([#159](https://github.com/ppat/homelab-ops-actions/issues/159)) ([5f31b74](https://github.com/ppat/homelab-ops-actions/commit/5f31b74d2299afab4fefbf5d58f8778bcb48ed17)), closes [#155](https://github.com/ppat/homelab-ops-actions/issues/155)
+
 ## [2.1.0](https://github.com/ppat/homelab-ops-actions/compare/v2.0.0...v2.1.0) (2026-07-20)
 
 
