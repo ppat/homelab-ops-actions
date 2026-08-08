@@ -83,7 +83,15 @@ runs:
     uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
     with:
       path: ${{ inputs.extra_cache_path }}
-      key: ${{ inputs.extra_cache_key }}-${{ steps.cache-key.outputs.cache_key }}
+      # A run-unique key means this always misses and saves at the end of the run, so
+      # accumulating caches (package manager download stores, etc.) actually get updated -
+      # actions/cache never re-saves under a key that already exists. restore-keys still
+      # scopes to the current month prefix, so the run starts from the latest same-month
+      # snapshot and the month boundary still rotates/discards the cache as intended.
+      # See https://github.com/ppat/homelab-ops-actions/issues/155.
+      key: ${{ inputs.extra_cache_key }}-${{ steps.cache-key.outputs.cache_key }}-${{ github.run_id }}
+      restore-keys: |
+        ${{ inputs.extra_cache_key }}-${{ steps.cache-key.outputs.cache_key }}-
 
   - name: Setup mise
     uses: jdx/mise-action@dad1bfd3df957f44999b559dd69dc1671cb4e9ea # v4.2.1
