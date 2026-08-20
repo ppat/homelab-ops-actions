@@ -6,31 +6,23 @@ author: homelab-ops@homelab-ops.com
 inputs:
   log_level:
     required: false
-    type: string
     default: INFO
   other_params:
     required: false
-    type: string
     default: ""
   path_after:
     required: true
-    type: string
   path_before:
     required: true
-    type: string
   resource_type:
     required: true
-    type: string
   skip_params:
     required: false
-    type: string
     default: "--skip-crds --skip-secrets"
   sources:
     required: true
-    type: string
   strip_attrs:
     required: false
-    type: string
     default: "helm.sh/chart,checksum/config,app.kubernetes.io/version,chart"
 
 outputs:

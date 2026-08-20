@@ -6,50 +6,38 @@ author: homelab-ops@homelab-ops.com
 inputs:
   current_fetch_depth:
     required: false
-    type: number
     default: 1
   current_git_ref:
     required: true
-    type: string
   current_persist_credentials:
     required: false
-    type: boolean
     default: false
   current_repository:
     required: true
-    type: string
   current_dir:
     required: false
-    type: string
     default: ""
   extra_cache_path:
     required: false
-    type: string
     default: ""
   extra_cache_key:
     required: false
-    type: string
     default: ""
   mise_ignore_cfg:
     required: false
-    type: string
     default: ""
   mise_log_level:
     required: false
-    type: string
     default: "info"
   mise_toml:
     required: false
-    type: string
     default: ""
   mise_version:
     required: false
-    type: string
     # renovate: datasource=github-releases depName=jdx/mise
     default: "v2026.8.5"
   token:
     required: true
-    type: string
 
 runs:
   using: composite
