@@ -7,25 +7,20 @@ author: homelab-ops@homelab-ops.com
 inputs:
   message:
     required: true
-    type: string
     description: The comment message body
   message_id:
     required: true
-    type: string
     description: Unique identifier for this comment (used to find and update existing comments)
   repository:
     required: false
-    type: string
     description: Repository in format owner/repo (defaults to current repository)
     default: ${{ github.repository }}
   pr_number:
     required: false
-    type: string
     description: Pull request number (defaults to current PR number)
     default: ${{ github.event.pull_request.number }}
   token:
     required: true
-    type: string
     description: GitHub token with write permissions to issues and pull requests
 
 outputs:
@@ -136,9 +131,9 @@ runs:
           echo "Comment URL: ${comment_url}"
 
           # Set outputs
-          echo "comment_id=${comment_id}" >> $GITHUB_OUTPUT
-          echo "comment_url=${comment_url}" >> $GITHUB_OUTPUT
-          echo "action_taken=updated" >> $GITHUB_OUTPUT
+          echo "comment_id=${comment_id}" >> "$GITHUB_OUTPUT"
+          echo "comment_url=${comment_url}" >> "$GITHUB_OUTPUT"
+          echo "action_taken=updated" >> "$GITHUB_OUTPUT"
         else
           echo "ERROR: Failed to update comment ${EXISTING_COMMENT_ID}:"
           cat update_error.log >&2
@@ -159,9 +154,9 @@ runs:
           echo "Comment URL: ${comment_url}"
 
           # Set outputs
-          echo "comment_id=${comment_id}" >> $GITHUB_OUTPUT
-          echo "comment_url=${comment_url}" >> $GITHUB_OUTPUT
-          echo "action_taken=created" >> $GITHUB_OUTPUT
+          echo "comment_id=${comment_id}" >> "$GITHUB_OUTPUT"
+          echo "comment_url=${comment_url}" >> "$GITHUB_OUTPUT"
+          echo "action_taken=created" >> "$GITHUB_OUTPUT"
         else
           echo "ERROR: Failed to create comment:"
           cat create_error.log >&2
