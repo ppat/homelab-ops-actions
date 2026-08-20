@@ -54,9 +54,9 @@ runs:
     shell: bash
     # yamllint disable-line rule:indentation
     run: |
-      echo 'diff<<EOF' >> "$GITHUB_OUTPUT"
-      cat diff.patch >> "$GITHUB_OUTPUT"
-      echo 'EOF' >> "$GITHUB_OUTPUT"
+      echo 'diff<<EOF' >> $GITHUB_OUTPUT
+      cat diff.patch >> $GITHUB_OUTPUT
+      echo 'EOF' >> $GITHUB_OUTPUT
       echo
       if [ -s diff.patch ]; then
         echo "Changes detected:"

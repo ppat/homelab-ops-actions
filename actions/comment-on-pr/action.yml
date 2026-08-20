@@ -131,9 +131,9 @@ runs:
           echo "Comment URL: ${comment_url}"
 
           # Set outputs
-          echo "comment_id=${comment_id}" >> "$GITHUB_OUTPUT"
-          echo "comment_url=${comment_url}" >> "$GITHUB_OUTPUT"
-          echo "action_taken=updated" >> "$GITHUB_OUTPUT"
+          echo "comment_id=${comment_id}" >> $GITHUB_OUTPUT
+          echo "comment_url=${comment_url}" >> $GITHUB_OUTPUT
+          echo "action_taken=updated" >> $GITHUB_OUTPUT
         else
           echo "ERROR: Failed to update comment ${EXISTING_COMMENT_ID}:"
           cat update_error.log >&2
@@ -154,9 +154,9 @@ runs:
           echo "Comment URL: ${comment_url}"
 
           # Set outputs
-          echo "comment_id=${comment_id}" >> "$GITHUB_OUTPUT"
-          echo "comment_url=${comment_url}" >> "$GITHUB_OUTPUT"
-          echo "action_taken=created" >> "$GITHUB_OUTPUT"
+          echo "comment_id=${comment_id}" >> $GITHUB_OUTPUT
+          echo "comment_url=${comment_url}" >> $GITHUB_OUTPUT
+          echo "action_taken=created" >> $GITHUB_OUTPUT
         else
           echo "ERROR: Failed to create comment:"
           cat create_error.log >&2
