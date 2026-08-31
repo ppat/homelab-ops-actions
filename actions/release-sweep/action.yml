@@ -1,0 +1,218 @@
+---
+# yamllint disable rule:line-length
+name: Release Sweep
+description: Merge eligible release-please pull requests with an authorized GitHub App token
+author: homelab-ops@homelab-ops.com
+
+inputs:
+  token:
+    required: true
+    description: GitHub App installation token authorized to merge pull requests
+  repository:
+    required: false
+    default: ${{ github.repository }}
+    description: Repository in owner/repo format
+  working_directory:
+    required: false
+    default: .
+    description: Main checkout containing release-please config and manifest files
+  base_branch:
+    required: false
+    default: main
+    description: Base branch tracked by the checkout's origin remote
+  dry_run:
+    required: false
+    default: 'true'
+    description: Evaluate and report decisions without merging unless explicitly false
+  release_pr_label:
+    required: false
+    default: pr-type:release
+    description: Label identifying open release-please pull requests
+  hold_label:
+    required: false
+    default: automerge:off
+    description: Label that holds an otherwise eligible release pull request
+  release_title_pattern:
+    required: false
+    default: '^chore\(release\): release ?([a-z0-9-]*) v([0-9]+)\.([0-9]+)\.([0-9]+)$'
+    description: Bash ERE with capture groups for component, major, minor, and patch
+  component_selector:
+    required: false
+    default: '.*'
+    description: Bash ERE selecting eligible release-please component names
+  manual_components:
+    required: false
+    default: ''
+    description: Space-separated release-please component names that always require a human merge
+
+runs:
+  using: composite
+  steps:
+  - name: Sweep release pull requests
+    env:
+      BASE_BRANCH: ${{ inputs.base_branch }}
+      COMPONENT_SELECTOR: ${{ inputs.component_selector }}
+      DRY_RUN: ${{ inputs.dry_run }}
+      GH_TOKEN: ${{ inputs.token }}
+      HOLD_LABEL: ${{ inputs.hold_label }}
+      MANUAL_COMPONENTS: ${{ inputs.manual_components }}
+      RELEASE_PR_LABEL: ${{ inputs.release_pr_label }}
+      RELEASE_TITLE_PATTERN: ${{ inputs.release_title_pattern }}
+      REPOSITORY: ${{ inputs.repository }}
+    shell: bash
+    working-directory: ${{ inputs.working_directory }}
+    # yamllint disable-line rule:indentation
+    run: |
+      # shellcheck shell=bash
+      # Merges release-please pull requests only after every guard below passes. Each guard
+      # fails closed to a skip, except an attempted REST merge that fails for another reason.
+      set -euo pipefail
+
+      command -v gh >/dev/null || { echo 'ERROR: GitHub CLI (gh) is required' >&2; exit 1; }
+      command -v jq >/dev/null || { echo 'ERROR: jq is required' >&2; exit 1; }
+      [[ -f release-please-config.json && -f .release-please-manifest.json ]] || {
+        echo 'ERROR: working_directory must contain release-please-config.json and .release-please-manifest.json' >&2
+        exit 1
+      }
+      [[ "${REPOSITORY}" == */* && "${REPOSITORY}" != /* && "${REPOSITORY}" != */ ]] || {
+        echo "ERROR: repository must be owner/repo (got '${REPOSITORY}'):" >&2
+        exit 1
+      }
+      [[ -n "${BASE_BRANCH}" ]] || { echo 'ERROR: base_branch is required' >&2; exit 1; }
+      [[ -n "${COMPONENT_SELECTOR}" ]] || { echo 'ERROR: component_selector is required' >&2; exit 1; }
+
+      # Anything other than an explicit false is dry-run. A local invocation cannot merge.
+      [[ "${DRY_RUN}" == 'false' ]] || DRY_RUN=true
+      if [[ "${DRY_RUN}" == false && "${GITHUB_ACTIONS:-}" != true ]]; then
+        echo 'release-sweep: not running inside GitHub Actions -- forcing dry-run' >&2
+        DRY_RUN=true
+      fi
+
+      summary_file="${GITHUB_STEP_SUMMARY:-/dev/null}"
+      summary_row() {
+        printf '| #%s | %s | %s | %s | %s |\n' "$1" "$2" "$3" "$4" "$5" >> "${summary_file}"
+        echo "release-sweep: PR #$1 ${2} v${3}: ${4} ${5:+(${5})}"
+      }
+      {
+        echo "## release sweep $(date -u '+%Y-%m-%dT%H:%M:%SZ') (dry-run: ${DRY_RUN})"
+        echo
+        echo '| PR | component | version | decision | reason |'
+        echo '| --- | --- | --- | --- | --- |'
+      } >> "${summary_file}"
+
+      checks_green() {
+        local sha="$1" runs n ok state count
+        runs="$(gh api "repos/${REPOSITORY}/commits/${sha}/check-runs?per_page=100" \
+          --jq '[(.total_count | tostring), ([.check_runs | group_by(.name)[] | max_by(.started_at) | .status == "completed" and (.conclusion == "success" or .conclusion == "skipped" or .conclusion == "neutral")] | all | tostring)] | @tsv')"
+        IFS=$'\t' read -r n ok <<< "${runs}"
+        [[ "${n}" -gt 0 && "${n}" -le 100 && "${ok}" == true ]] || return 1
+        state="$(gh api "repos/${REPOSITORY}/commits/${sha}/status" --jq '[.state, (.total_count | tostring)] | @tsv')"
+        IFS=$'\t' read -r state count <<< "${state}"
+        [[ "${state}" == success || "${count}" == 0 ]]
+      }
+
+      path_stale() {
+        local sha="$1" path="$2" parent
+        parent="$(git rev-parse --quiet --verify "${sha}^" 2>/dev/null)" || return 0
+        git merge-base --is-ancestor "${parent}" "origin/${BASE_BRANCH}" || return 0
+        [[ "$(git rev-list --count "${parent}..origin/${BASE_BRANCH}" -- "${path}")" != 0 ]]
+      }
+
+      has_merge_conflicts() {
+        local number="$1" mergeable state
+        IFS=$'\t' read -r mergeable state <<< "$(gh api "repos/${REPOSITORY}/pulls/${number}" \
+          --jq '[(.mergeable | tostring), .mergeable_state] | @tsv')"
+        [[ "${mergeable}" == false && "${state}" == dirty ]] || [[ "${mergeable}" == null ]]
+      }
+
+      prs="$(gh pr list --repo "${REPOSITORY}" --label "${RELEASE_PR_LABEL}" --state open \
+        --json number,title,labels,headRefOid,headRefName --limit 100 \
+        --jq '.[] | [.number, .title, ([.labels[].name] | join(",")), .headRefOid, .headRefName] | @tsv')"
+      merge_failures=0
+      [[ -n "${prs}" ]] || echo 'release-sweep: no open release pull requests'
+
+      while IFS=$'\t' read -r number title labels head_sha head_ref; do
+        [[ -n "${number}" ]] || continue
+        if [[ ! "${title}" =~ ${RELEASE_TITLE_PATTERN} ]]; then
+          summary_row "${number}" '?' '?' skip "title does not match release_title_pattern"
+          continue
+        fi
+        component="${BASH_REMATCH[1]}"
+        new_major="${BASH_REMATCH[2]}"
+        new_minor="${BASH_REMATCH[3]}"
+        new_patch="${BASH_REMATCH[4]}"
+        version="${new_major}.${new_minor}.${new_patch}"
+        [[ "${component}" =~ ${COMPONENT_SELECTOR} ]] || continue
+
+        path="$(jq -r --arg component "${component}" \
+          '.packages | to_entries[] | select((.value.component // "") == $component) | .key' release-please-config.json)"
+        if [[ -z "${path}" ]]; then
+          summary_row "${number}" "${component}" "${version}" skip 'component not in release-please-config.json'
+          continue
+        fi
+        current="$(jq -r --arg path "${path}" '.[$path] // empty' .release-please-manifest.json)"
+        if [[ -z "${current}" ]]; then
+          summary_row "${number}" "${component}" "${version}" skip 'first release requires a human'
+          continue
+        fi
+        IFS=. read -r cur_major cur_minor cur_patch <<< "${current}"
+        if [[ "${new_major}" == "${cur_major}" && "${new_minor}" == "${cur_minor}" && "${new_patch}" == "$((cur_patch + 1))" ]]; then
+          bump="patch"
+        elif [[ "${new_major}" == "${cur_major}" && "${new_minor}" == "$((cur_minor + 1))" && "${new_patch}" == 0 ]]; then
+          bump="minor"
+        else
+          bump="other"
+        fi
+        if [[ "${bump}" == minor ]] && [[ "${cur_major}" == 0 ]] && \
+           [[ "$(jq -r --arg path "${path}" '.packages[$path]["bump-minor-pre-major"] // false' release-please-config.json)" == true ]]; then
+          summary_row "${number}" "${component}" "${version}" skip "minor over ${current} is breaking"
+          continue
+        elif [[ "${bump}" != patch && "${bump}" != minor ]]; then
+          summary_row "${number}" "${component}" "${version}" skip "not a patch/minor bump over ${current}"
+          continue
+        fi
+        if [[ ",${labels}," == *",${HOLD_LABEL},"* ]]; then
+          summary_row "${number}" "${component}" "${version}" skip "${HOLD_LABEL} hold"
+          continue
+        fi
+        # Single-package release-please repositories use an empty component in the title. An
+        # empty component must not match the empty default manual-components list.
+        if [[ -n "${component}" && " ${MANUAL_COMPONENTS} " == *" ${component} "* ]]; then
+          summary_row "${number}" "${component}" "${version}" skip MANUAL_COMPONENTS
+          continue
+        fi
+        if has_merge_conflicts "${number}"; then
+          summary_row "${number}" "${component}" "${version}" skip 'pull request is conflicting or mergeability is unresolved'
+          continue
+        fi
+        if ! checks_green "${head_sha}"; then
+          summary_row "${number}" "${component}" "${version}" skip "checks not all green on ${head_sha:0:8}"
+          continue
+        fi
+        git fetch --quiet origin "${head_ref}" < /dev/null || true
+        if path_stale "${head_sha}" "${path}"; then
+          summary_row "${number}" "${component}" "${version}" skip "${BASE_BRANCH} moved under ${path} since PR was built"
+          continue
+        fi
+        if [[ "${DRY_RUN}" == true ]]; then
+          summary_row "${number}" "${component}" "${version}" 'would merge' "${bump} bump over ${current}"
+          continue
+        fi
+        if gh api --method PUT "repos/${REPOSITORY}/pulls/${number}/merge" \
+            -f sha="${head_sha}" -f merge_method=squash < /dev/null; then
+          summary_row "${number}" "${component}" "${version}" merged "${bump} bump over ${current}"
+        else
+          now_head="$(gh pr view "${number}" --repo "${REPOSITORY}" --json headRefOid --jq .headRefOid 2>/dev/null || echo unknown)"
+          if [[ "${now_head}" != "${head_sha}" ]]; then
+            summary_row "${number}" "${component}" "${version}" skip "head moved during sweep (now ${now_head:0:8})"
+          else
+            summary_row "${number}" "${component}" "${version}" 'MERGE FAILED' 'see log'
+            merge_failures=$((merge_failures + 1))
+          fi
+        fi
+      done <<< "${prs}"
+
+      if [[ "${merge_failures}" -gt 0 ]]; then
+        echo "release-sweep: ${merge_failures} merge(s) failed" >&2
+        exit 1
+      fi

@@ -1,0 +1,55 @@
+---
+# yamllint disable rule:line-length
+# Release-please uses the repository root as its single component. This workflow is also the
+# action's integration test: pull requests touching the action or this wiring evaluate against
+# their checked-out implementation without merging.
+name: release-sweep
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+    - '.github/workflows/release-sweep.yaml'
+    - 'actions/release-sweep/**'
+  schedule:
+  # Monthly, off the top of the hour to avoid GitHub's busiest schedule interval.
+  - cron: '17 3 1 * *'
+
+concurrency:
+  # Dry-run PRs do not contend with a live sweep and may be replaced safely.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions: {}
+
+jobs:
+  sweep:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+    - name: Generate app token
+      id: app-token
+      if: ${{ github.event_name == 'schedule' }}
+      uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+      with:
+        app-id: ${{ secrets.HOMELAB_BOT_APP_ID }}
+        private-key: ${{ secrets.HOMELAB_BOT_APP_PRIVATE_KEY }}
+        permission-contents: write
+        permission-pull-requests: write
+    - name: Checkout
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        # The PR checkout intentionally tests the action change under review. Full history lets
+        # the action determine whether a release PR is stale relative to origin/main.
+        fetch-depth: 0
+        persist-credentials: false
+    - name: Sweep release pull requests
+      uses: ./actions/release-sweep
+      with:
+        # PRs run untrusted action code only with the built-in read token. The monthly schedule
+        # supplies the App token needed for an authorized, live merge.
+        token: ${{ github.event_name == 'schedule' && steps.app-token.outputs.token || github.token }}
+        dry_run: ${{ github.event_name == 'pull_request' }}
