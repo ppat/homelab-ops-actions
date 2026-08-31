@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.3.1](https://github.com/ppat/homelab-ops-actions/compare/v2.3.0...v2.3.1) (2026-08-31)
+
+
+### 🧹 Miscellaneous
+
+* **dev-tools:** update jdx/mise (v2026.8.14 -&gt; v2026.8.15) ([#176](https://github.com/ppat/homelab-ops-actions/issues/176)) ([d0ace26](https://github.com/ppat/homelab-ops-actions/commit/d0ace26444f155be9c6ed193a77ec6622b8402de))
+
+
+### 🚀 Enhancements + Bug Fixes
+
+* wait for resolved pull-request mergeability ([#178](https://github.com/ppat/homelab-ops-actions/issues/178)) ([31059ed](https://github.com/ppat/homelab-ops-actions/commit/31059edaed5096246adc6a2360a4a32f45318b83))
+
 ## [2.3.0](https://github.com/ppat/homelab-ops-actions/compare/v2.2.0...v2.3.0) (2026-08-31)
 
 
