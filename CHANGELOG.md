@@ -1,5 +1,30 @@
 # Changelog
 
+## [2.3.0](https://github.com/ppat/homelab-ops-actions/compare/v2.2.0...v2.3.0) (2026-08-31)
+
+
+### 🧹 Miscellaneous
+
+* **dev-tools:** update jdx/mise (v2026.8.10 -&gt; v2026.8.14) ([#174](https://github.com/ppat/homelab-ops-actions/issues/174)) ([f68f6c8](https://github.com/ppat/homelab-ops-actions/commit/f68f6c858c089134e97f99cbff83ee5fadb35225))
+* **dev-tools:** update jdx/mise (v2026.8.2 -&gt; v2026.8.5) ([#166](https://github.com/ppat/homelab-ops-actions/issues/166)) ([f6a4d14](https://github.com/ppat/homelab-ops-actions/commit/f6a4d14144b6e5bdbf19e32311c794038e117881))
+* **dev-tools:** update jdx/mise (v2026.8.5 -&gt; v2026.8.10) ([#170](https://github.com/ppat/homelab-ops-actions/issues/170)) ([88b2ce4](https://github.com/ppat/homelab-ops-actions/commit/88b2ce43e90b24332cb49f986df3e09e76b6cdab))
+
+
+### ✨ Features
+
+* add release sweep action ([#175](https://github.com/ppat/homelab-ops-actions/issues/175)) ([3a099d8](https://github.com/ppat/homelab-ops-actions/commit/3a099d86d649401e30342e167f23cf40cade76c4))
+* **github-actions:** update ppat/github-workflows (v4.2.0 -&gt; v4.4.0) ([#163](https://github.com/ppat/homelab-ops-actions/issues/163)) ([d8f530f](https://github.com/ppat/homelab-ops-actions/commit/d8f530fae557e1a714c9992d09600a1da0f7387a))
+* **github-actions:** update ppat/github-workflows (v4.4.0 -&gt; v5.0.1) ([#168](https://github.com/ppat/homelab-ops-actions/issues/168)) ([e9624a2](https://github.com/ppat/homelab-ops-actions/commit/e9624a27761895fbd81d7fa378af054984075860))
+* **github-actions:** update ppat/github-workflows (v5.0.1 -&gt; v6.0.0) ([#169](https://github.com/ppat/homelab-ops-actions/issues/169)) ([ea49fdb](https://github.com/ppat/homelab-ops-actions/commit/ea49fdbb1557496bb51ab4234d8eda0c2169493a))
+* update ppat/renovate-presets (v0.2.1 -&gt; v0.3.0) ([#172](https://github.com/ppat/homelab-ops-actions/issues/172)) ([0a408d1](https://github.com/ppat/homelab-ops-actions/commit/0a408d1934c2bb973068a9701896c6ca36d04620))
+
+
+### 🚀 Enhancements + Bug Fixes
+
+* **dev-tools:** update astral-sh/uv (0.12.3 -&gt; 0.12.5) ([#165](https://github.com/ppat/homelab-ops-actions/issues/165)) ([42143b0](https://github.com/ppat/homelab-ops-actions/commit/42143b0bac1a409bdae841bce038ab683420acfc))
+* **dev-tools:** update astral-sh/uv (0.12.5 -&gt; 0.12.6) ([#171](https://github.com/ppat/homelab-ops-actions/issues/171)) ([f36f5fe](https://github.com/ppat/homelab-ops-actions/commit/f36f5fec9bc80cea12e0c2e404fb54a2bd73f229))
+* **dev-tools:** update astral-sh/uv (0.12.6 -&gt; 0.12.7) ([#173](https://github.com/ppat/homelab-ops-actions/issues/173)) ([f691e7b](https://github.com/ppat/homelab-ops-actions/commit/f691e7b1505522e51b787f74c2ddef647263e68b))
+
 ## [2.2.0](https://github.com/ppat/homelab-ops-actions/compare/v2.1.0...v2.2.0) (2026-08-08)
 
 
