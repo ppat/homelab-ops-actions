@@ -28,7 +28,8 @@ A release pull request is merged only when all of these are true:
    and is not manually held.
 3. It is a non-breaking patch/minor bump under the repository's release-please settings.
 4. It has no hold label, no merge conflicts, all check runs are green/skipped/neutral, and no
-   newer base-branch commit touches its release-please package path.
+   newer base-branch commit touches its release-please package path. The action waits for GitHub's
+   asynchronous test-merge calculation; a policy-blocked result is not treated as a conflict.
 5. Its head SHA still matches at the moment of the REST squash merge.
 
 ## Inputs
