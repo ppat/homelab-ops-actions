@@ -118,11 +118,26 @@ runs:
         [[ "$(git rev-list --count "${parent}..origin/${BASE_BRANCH}" -- "${path}")" != 0 ]]
       }
 
-      has_merge_conflicts() {
-        local number="$1" mergeable state
-        IFS=$'\t' read -r mergeable state <<< "$(gh api "repos/${REPOSITORY}/pulls/${number}" \
-          --jq '[(.mergeable | tostring), .mergeable_state] | @tsv')"
-        [[ "${mergeable}" == false && "${state}" == dirty ]] || [[ "${mergeable}" == null ]]
+      mergeability_status() {
+        # The first REST read starts GitHub's asynchronous test-merge calculation and can return
+        # mergeable:null. Poll it to a result: `blocked` means a policy applies, not a conflict,
+        # and the authorized merge request below is the authority on whether that policy permits
+        # this App to merge.
+        local number="$1" attempt mergeable state
+        for ((attempt = 1; attempt <= 5; attempt++)); do
+          IFS=$'\t' read -r mergeable state <<< "$(gh api "repos/${REPOSITORY}/pulls/${number}" \
+            --jq '[(.mergeable | tostring), .mergeable_state] | @tsv')"
+          if [[ "${mergeable}" != null ]]; then
+            if [[ "${mergeable}" == false && "${state}" == dirty ]]; then
+              echo conflicting
+            else
+              echo resolved
+            fi
+            return
+          fi
+          sleep 1
+        done
+        echo unresolved
       }
 
       prs="$(gh pr list --repo "${REPOSITORY}" --label "${RELEASE_PR_LABEL}" --state open \
@@ -181,10 +196,16 @@ runs:
           summary_row "${number}" "${component}" "${version}" skip MANUAL_COMPONENTS
           continue
         fi
-        if has_merge_conflicts "${number}"; then
-          summary_row "${number}" "${component}" "${version}" skip 'pull request is conflicting or mergeability is unresolved'
-          continue
-        fi
+        case "$(mergeability_status "${number}")" in
+          conflicting)
+            summary_row "${number}" "${component}" "${version}" skip 'pull request has merge conflicts'
+            continue
+            ;;
+          unresolved)
+            summary_row "${number}" "${component}" "${version}" skip 'mergeability did not resolve'
+            continue
+            ;;
+        esac
         if ! checks_green "${head_sha}"; then
           summary_row "${number}" "${component}" "${version}" skip "checks not all green on ${head_sha:0:8}"
           continue
