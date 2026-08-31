@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.2](https://github.com/ppat/homelab-ops-actions/compare/v2.3.1...v2.3.2) (2026-08-31)
+
+
+### 🚀 Enhancements + Bug Fixes
+
+* skip conflicts created during a sweep ([#179](https://github.com/ppat/homelab-ops-actions/issues/179)) ([cbe4595](https://github.com/ppat/homelab-ops-actions/commit/cbe45952d365ea52d487753f3723a7cf98a86793))
+
 ## [2.3.1](https://github.com/ppat/homelab-ops-actions/compare/v2.3.0...v2.3.1) (2026-08-31)
 
 
