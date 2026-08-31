@@ -226,6 +226,11 @@ runs:
           now_head="$(gh pr view "${number}" --repo "${REPOSITORY}" --json headRefOid --jq .headRefOid 2>/dev/null || echo unknown)"
           if [[ "${now_head}" != "${head_sha}" ]]; then
             summary_row "${number}" "${component}" "${version}" skip "head moved during sweep (now ${now_head:0:8})"
+          # A preceding release merge can make this PR conflict on shared release-please state
+          # after its preflight. The failed merge is authoritative; re-check after it so the
+          # summary records a newly-created conflict as a skip, not an action failure.
+          elif [[ "$(mergeability_status "${number}")" == conflicting ]]; then
+            summary_row "${number}" "${component}" "${version}" skip 'pull request has merge conflicts'
           else
             summary_row "${number}" "${component}" "${version}" 'MERGE FAILED' 'see log'
             merge_failures=$((merge_failures + 1))
