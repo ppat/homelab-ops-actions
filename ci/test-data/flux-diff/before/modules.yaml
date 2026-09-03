@@ -9,6 +9,7 @@ spec:
   postBuild:
     substitute:
       domain_name: before.example.com
+      podinfo_message: before-message
       grafana_version: 10.0.0
       secret_store: before-store
   prune: true

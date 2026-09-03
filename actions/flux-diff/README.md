@@ -11,6 +11,23 @@ Runs the `ghcr.io/allenporter/flux-local` Docker image's `diff <resource_type>` 
 `diff` output. `strip_attrs`/`skip_params` default to stripping noisy, non-semantic fields (Helm
 chart checksums, versions) so diffs reflect real spec changes only.
 
+## Choosing the pinned image
+
+The pinned `flux-local` image bundles its own `helm` binary, and that binary is what renders every
+chart the diff reports on. Its major must track the one Flux's `helm-controller` links against:
+when the two drift apart, the diff still renders and still looks healthy, but it stops describing
+what Flux would deploy. The failure is silent and asymmetric — a chart that renders identically
+under both majors hides the drift, so the modules that expose it are found by rendering the whole
+estate under both images and comparing, not by reading a job's exit code.
+
+Two rendering differences observed across that boundary, as a sense of what changes: a
+quoted-numeric value in a chart's values (`"08"`) losing its quoting and arriving as an integer,
+and templates gated on API availability rendering under one major and not the other.
+
+Because the diff renders the before and the after tree with the *same* image, a systematic
+rendering difference cancels and does not surface as review noise — the cost of being on the wrong
+major is fidelity, not churn.
+
 ## Inputs
 
 | Input | Required | Default | Description |
