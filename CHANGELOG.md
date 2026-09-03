@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.4.0](https://github.com/ppat/homelab-ops-actions/compare/v2.3.2...v2.4.0) (2026-09-03)
+
+
+### ✨ Features
+
+* **github-actions:** update ppat/github-workflows (v6.0.0 -&gt; v6.1.0) ([#182](https://github.com/ppat/homelab-ops-actions/issues/182)) ([a5b0dd5](https://github.com/ppat/homelab-ops-actions/commit/a5b0dd5bc357e95b0fee5fdf218047f4504195d6))
+
+
+### 🚀 Enhancements + Bug Fixes
+
+* **dev-tools:** update astral-sh/uv (0.12.7 -&gt; 0.12.9) ([#181](https://github.com/ppat/homelab-ops-actions/issues/181)) ([45d81d8](https://github.com/ppat/homelab-ops-actions/commit/45d81d8d05fdadc14ec92c3653b1c651b6013631))
+* **github-actions:** render diffs with a helm major that matches Flux, and stop failing on digest-pinned charts ([#184](https://github.com/ppat/homelab-ops-actions/issues/184)) ([aaaeda3](https://github.com/ppat/homelab-ops-actions/commit/aaaeda38657c117331e8ad8486d7a73c84f3982a))
+
 ## [2.3.2](https://github.com/ppat/homelab-ops-actions/compare/v2.3.1...v2.3.2) (2026-08-31)
 
 
