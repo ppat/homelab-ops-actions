@@ -1,0 +1,18 @@
+---
+# Digest-pinned on purpose. flux-local resolves an OCIRepository's chart reference
+# differently depending on whether `ref.digest` is set, and got that wrong until
+# allenporter/flux-local#1103: it passed the digest to `helm template --version`,
+# where helm rejects it as a version constraint ("improper constraint"). Any
+# consumer pinning a chart by digest hit a permanently failing diff. Keep both
+# `tag` and `digest` -- the pair is the shape real consumers use, and it is what
+# makes the wrong code path reachable, since the tag alone would template fine.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: podinfo-repository
+  namespace: flux-system
+spec:
+  url: oci://ghcr.io/stefanprodan/charts/podinfo
+  ref:
+    tag: 6.15.0
+    digest: sha256:ff3d3e14728f75476ed4d43c14f80d52d81d36bc16906843463d464c6146f0d8

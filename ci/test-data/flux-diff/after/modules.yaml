@@ -10,6 +10,7 @@ spec:
   postBuild:
     substitute:
       domain_name: after.example.com
+      podinfo_message: after-message
       grafana_version: 10.3.1
       secret_store: after-store
   prune: false
