@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.6.0](https://github.com/ppat/homelab-ops-actions/compare/v2.5.0...v2.6.0) (2026-09-10)
+
+
+### 🧹 Miscellaneous
+
+* **dev-tools:** update jdx/mise (v2026.8.15 -&gt; v2026.9.1) ([#191](https://github.com/ppat/homelab-ops-actions/issues/191)) ([5ff4dc5](https://github.com/ppat/homelab-ops-actions/commit/5ff4dc534a23a8af374d8c432a9dbd154b418a43))
+
+
+### ✨ Features
+
+* **github-actions:** update ppat/github-workflows (v7.0.0 -&gt; v8.0.0) ([#188](https://github.com/ppat/homelab-ops-actions/issues/188)) ([33a975f](https://github.com/ppat/homelab-ops-actions/commit/33a975f92164512a020cf92ec4c3bf5eb84747df))
+
+
+### 🚀 Enhancements + Bug Fixes
+
+* **dev-tools:** update astral-sh/uv (0.12.9 -&gt; 0.12.10) ([#190](https://github.com/ppat/homelab-ops-actions/issues/190)) ([38627bb](https://github.com/ppat/homelab-ops-actions/commit/38627bbf3d2aaf719eeb19c794c6e503763048c4))
+
 ## [2.5.0](https://github.com/ppat/homelab-ops-actions/compare/v2.4.0...v2.5.0) (2026-09-03)
 
 
