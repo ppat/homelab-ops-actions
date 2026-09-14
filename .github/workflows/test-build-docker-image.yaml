@@ -1,0 +1,155 @@
+---
+# yamllint disable rule:line-length
+name: test-build-docker-image
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+    - '.github/workflows/test-build-docker-image.yaml'
+    - 'actions/build-docker-image/**'
+    - 'ci/test-data/build-docker-image/**'
+  schedule:
+  - cron: '0 4 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DOCKERFILE: ci/test-data/build-docker-image/app/Dockerfile
+  EXPECTED_CONTENT: "hello\nfrom-build-arg\nselected"
+
+jobs:
+  build-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+    - name: Checkout
+      # The default ref: on a pull request this is the detached merge commit, the case a
+      # build-only run must accept.
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        fetch-depth: 1
+        persist-credentials: false
+
+    - name: Build from the repository root with a Dockerfile in a subdirectory
+      id: build
+      uses: ./actions/build-docker-image
+      with:
+        image_context_path: .
+        dockerfile: ${{ env.DOCKERFILE }}
+        # yamllint disable-line rule:indentation
+        build_args: |
+          GREETING_SUFFIX=from-build-arg
+        target: selected
+        load: "true"
+
+    - name: Verify the loaded image and the outputs
+      shell: bash
+      env:
+        IMAGE_ID: ${{ steps.build.outputs.image_id }}
+        IMAGE_REFS: ${{ steps.build.outputs.image_refs }}
+      # yamllint disable-line rule:indentation
+      run: |
+        set -euo pipefail
+        [[ -n "$IMAGE_ID" ]] || { echo "::error::image_id is empty"; exit 1; }
+        [[ -z "$IMAGE_REFS" ]] || { echo "::error::image_refs must be empty on a build-only run, got '$IMAGE_REFS'"; exit 1; }
+
+        actual="$(docker run --rm "$IMAGE_ID" cat /greeting.txt /stage.txt)"
+        expected="$(printf '%b' "$EXPECTED_CONTENT")"
+        if [[ "$actual" != "$expected" ]]; then
+          echo "::error::image content mismatch. Expected:"; echo "$expected"; echo "Actual:"; echo "$actual"
+          exit 1
+        fi
+
+        # The action passes state between its steps as step outputs; none of it may leak
+        # into the caller's environment.
+        if leaked="$(env | grep -E '^(PUBLISH_[A-Z_]+|REF_KIND|VERSION_(RAW|SEMVER|SHA)|CACHE_(FROM|TO)|GHCR_REPOSITORY_LOWER)=')"; then
+          echo "::error::the action leaked variables into the job environment:"; echo "$leaked"
+          exit 1
+        fi
+
+    - name: Publishing from a detached HEAD
+      id: refuse
+      if: ${{ github.event_name == 'pull_request' }}
+      continue-on-error: true
+      uses: ./actions/build-docker-image
+      with:
+        image_context_path: .
+        dockerfile: ${{ env.DOCKERFILE }}
+        target: selected
+        # Never pushed: "Resolve git ref" fails before any login.
+        ghcr_repository: ${{ github.repository_owner }}/homelab-ops-actions-test-refused
+
+    - name: Verify publishing from a detached HEAD was refused
+      if: ${{ github.event_name == 'pull_request' }}
+      shell: bash
+      env:
+        OUTCOME: ${{ steps.refuse.outcome }}
+      # yamllint disable-line rule:indentation
+      run: |
+        [[ "$OUTCOME" == 'failure' ]] || { echo "::error::expected the publish attempt to fail, outcome was '$OUTCOME'"; exit 1; }
+
+  publish-and-sign:
+    # Fork pull requests get neither packages: write nor an OIDC token.
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    env:
+      GHCR_REPOSITORY: ${{ github.repository_owner }}/homelab-ops-actions-test-build-docker-image
+    steps:
+    - name: Checkout
+      # A branch ref, since publishing refuses a detached HEAD.
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        fetch-depth: 1
+        persist-credentials: false
+        ref: ${{ github.head_ref || github.ref }}
+
+    - name: Build, push to GHCR and sign
+      id: build
+      uses: ./actions/build-docker-image
+      with:
+        image_context_path: .
+        dockerfile: ${{ env.DOCKERFILE }}
+        # yamllint disable-line rule:indentation
+        build_args: |
+          GREETING_SUFFIX=from-build-arg
+        target: selected
+        ghcr_repository: ${{ env.GHCR_REPOSITORY }}
+        sign: "true"
+
+    - name: Verify the signature and the pushed image
+      shell: bash
+      env:
+        DIGEST: ${{ steps.build.outputs.digest }}
+        IMAGE_REFS: ${{ steps.build.outputs.image_refs }}
+        WORKFLOW_IDENTITY: ^https://github\.com/${{ github.repository }}/\.github/workflows/test-build-docker-image\.yaml@
+      # yamllint disable-line rule:indentation
+      run: |
+        set -euo pipefail
+        [[ -n "$DIGEST" ]] || { echo "::error::digest is empty after a push"; exit 1; }
+        [[ -n "$IMAGE_REFS" ]] || { echo "::error::image_refs is empty after a push"; exit 1; }
+        ref="ghcr.io/${GHCR_REPOSITORY,,}@${DIGEST}"
+
+        cosign verify "$ref" \
+          --certificate-identity-regexp "$WORKFLOW_IDENTITY" \
+          --certificate-oidc-issuer https://token.actions.githubusercontent.com
+
+        actual="$(docker run --rm "$ref" cat /greeting.txt /stage.txt)"
+        expected="$(printf '%b' "$EXPECTED_CONTENT")"
+        if [[ "$actual" != "$expected" ]]; then
+          echo "::error::pushed image content mismatch. Expected:"; echo "$expected"; echo "Actual:"; echo "$actual"
+          exit 1
+        fi
