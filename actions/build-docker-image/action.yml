@@ -1,0 +1,720 @@
+---
+# yamllint disable rule:line-length
+name: Build Docker Image
+description: Build a Docker image from the caller's checkout, optionally publish it to Docker Hub, a private registry and/or GHCR, and optionally sign it with keyless cosign.
+author: homelab-ops@homelab-ops.com
+
+inputs:
+  image_context_path:
+    required: true
+    description: Build context, relative to the workspace (use `.` for the repository root)
+  dockerfile:
+    required: false
+    description: Path to the Dockerfile, relative to the workspace. Empty means `<image_context_path>/Dockerfile`
+    default: ""
+  build_args:
+    required: false
+    description: Newline-separated `NAME=value` build arguments
+    default: ""
+  target:
+    required: false
+    description: Build stage to build. Empty builds the last stage
+    default: ""
+  load:
+    required: false
+    description: Load the built image into the runner's Docker daemon (single platform only)
+    default: "false"
+  platforms:
+    required: false
+    description: Comma-separated target platforms
+    # linux/amd64 only: defaulting to a multi-arch pair would silently hand a naive new consumer
+    # QEMU-emulated arm64 builds -- images/openclaw hit exactly this trap (arm64 blew a 20-minute
+    # timeout while amd64 finished in under 2 minutes).
+    default: linux/amd64
+  label_title:
+    required: false
+    description: OCI title label and annotation
+    default: ${{ github.event.repository.name }}
+  label_description:
+    required: false
+    description: OCI description label and annotation, and the Docker Hub short description
+    default: ${{ github.event.repository.description }}
+  dockerhub_repository:
+    required: false
+    description: Docker Hub repository to publish to
+    default: ""
+  dockerhub_readme_path:
+    required: false
+    description: README pushed as the Docker Hub description. Empty means `<image_context_path>/README.md`
+    default: ""
+  ghcr_repository:
+    required: false
+    description: GHCR repository (`owner/name`, without `ghcr.io/`) to publish to
+    default: ""
+  private_registry_repository:
+    required: false
+    description: Repository path in the private registry to publish to
+    default: ""
+  private_registry_build_cache:
+    required: false
+    description: Repository path in the private registry used for the registry build cache
+    default: ""
+  sign:
+    required: false
+    description: Sign every published repository by digest with keyless cosign. Needs `id-token write` on the caller's job
+    default: "false"
+  cosign_version:
+    required: false
+    description: cosign release installed when signing
+    # renovate: datasource=github-releases depName=sigstore/cosign
+    default: "v3.1.3"
+  build_secrets:
+    required: false
+    description: Build secrets passed to docker/build-push-action `secrets`
+    default: ""
+  dockerhub_username:
+    required: false
+    description: Docker Hub username
+    default: ""
+  dockerhub_token:
+    required: false
+    description: Docker Hub token
+    default: ""
+  private_registry:
+    required: false
+    description: Private registry host
+    default: ""
+  private_registry_username:
+    required: false
+    description: Private registry username
+    default: ""
+  private_registry_token:
+    required: false
+    description: Private registry token
+    default: ""
+  tailscale_oauth_client_id:
+    required: false
+    description: Tailscale OAuth client id, needed to reach a Tailnet-only private registry
+    default: ""
+  tailscale_oauth_secret:
+    required: false
+    description: Tailscale OAuth secret
+    default: ""
+
+outputs:
+  digest:
+    description: Image digest reported by docker/build-push-action. Empty on a build-only run without `load`
+    value: ${{ steps.image_info.outputs.digest }}
+  image_tag:
+    description: Primary version tag computed by docker/metadata-action
+    value: ${{ steps.image_info.outputs.image_tag }}
+  image_refs:
+    description: Newline-separated pushed image references. Empty when nothing was published
+    value: ${{ steps.image_info.outputs.image_refs }}
+  image_id:
+    description: Image ID reported by docker/build-push-action, the handle for an image built with `load`
+    value: ${{ steps.build-image.outputs.imageid }}
+
+runs:
+  using: composite
+  steps:
+  - name: Validate publish target configuration
+    id: validate
+    shell: bash
+    env:
+      DOCKERHUB_REPOSITORY: ${{ inputs.dockerhub_repository }}
+      DOCKERHUB_USERNAME: ${{ inputs.dockerhub_username }}
+      DOCKERHUB_TOKEN: ${{ inputs.dockerhub_token }}
+      PRIVATE_REGISTRY: ${{ inputs.private_registry }}
+      PRIVATE_REGISTRY_REPOSITORY: ${{ inputs.private_registry_repository }}
+      PRIVATE_REGISTRY_USERNAME: ${{ inputs.private_registry_username }}
+      PRIVATE_REGISTRY_TOKEN: ${{ inputs.private_registry_token }}
+      GHCR_REPOSITORY: ${{ inputs.ghcr_repository }}
+      TAILSCALE_OAUTH_CLIENT_ID: ${{ inputs.tailscale_oauth_client_id }}
+      TAILSCALE_OAUTH_SECRET: ${{ inputs.tailscale_oauth_secret }}
+      LOAD: ${{ inputs.load }}
+      PLATFORMS: ${{ inputs.platforms }}
+      SIGN: ${{ inputs.sign }}
+      # On a non-pull_request run, github.event.pull_request is unset and this evaluates to
+      # `false`, not an error.
+      FORK_PR: ${{ github.event.pull_request.head.repo.fork == true }}
+    # yamllint disable-line rule:indentation
+    run: |
+      # One rule, applied identically to all three targets, keyed on the *repository* input
+      # -- not on credentials -- since a repository can be requested independently of
+      # whether its credentials happen to be configured.
+      #
+      #   requested = repository input is non-empty AND well-formed (no leading/trailing
+      #   '/', no empty path segment). A caller commonly builds this input by interpolating
+      #   an org/repo variable in front of a literal path segment (a bare vars-context
+      #   value, followed by "/name"), which resolves to a genuinely malformed "/name" when
+      #   that variable is unset -- e.g. on a fork PR, where organization variables are
+      #   withheld the same way secrets are.
+      #   Rejecting that shape as malformed (treated as unset, with a warning) is a real
+      #   well-formedness check, not a fork heuristic -- it fires the same way regardless of
+      #   event type. Deep paths like `library/team/name` remain valid.
+      #
+      #   requested && credentials missing -> error and fail, UNLESS this is a fork PR (only
+      #   then are credentials legitimately withheld rather than simply forgotten) -- warn
+      #   and disable the target instead.
+      #   requested && credentials complete -> target on, nothing to report.
+      #   !requested && credentials complete -> WARNING, not error: a caller that inherits
+      #   org-level credentials it doesn't intend to use is not misconfigured -- passing
+      #   unused credentials is harmless, and the repository input alone is the request signal.
+      #   !requested && credentials missing -> target simply disabled. Warn, don't fail.
+      #   partial credentials (some but not all) -> always an unambiguous misconfiguration,
+      #   independent of `requested`; fail before any expensive setup runs.
+      #
+      # Docker Hub and the private registry declare a non-empty credential set (creds_total
+      # 2 and 3 below); GHCR does not -- it authenticates with the ambient GITHUB_TOKEN, not
+      # a credential pair of its own, so it's called with creds_set=0, creds_total=0. Walk
+      # check_target's branches at that specific point, since a wrong branch here means an
+      # error for every consumer that doesn't use GHCR:
+      #   - partial (creds_set>0 && creds_set<creds_total): needs creds_set>0, impossible
+      #     when creds_set is always 0 -- can never fire.
+      #   - requested && creds missing (requested==1 && creds_set<creds_total): 0<0 is
+      #     false -- can never fire, so a requested GHCR with no credentials is not an error.
+      #   - !requested && creds "complete" (requested==0 && creds_total>0 && ...): guarded by
+      #     creds_total>0, which is false here -- can never fire ("vacuous complete" is
+      #     exactly what this guard exists to block).
+      #   - !requested && creds_set==0: the only branch reachable at creds_total=0. Fires
+      #     the ordinary "not configured" warning when GHCR isn't requested, same as any
+      #     other unrequested target.
+      #
+      # check_target is the single source of truth for whether each target publishes: every
+      # later `if:`/`images:`/`push:`/`sbom:`/`provenance:` reads this step's outputs. They are
+      # step outputs rather than $GITHUB_ENV exports because a composite action's $GITHUB_ENV
+      # writes stay set for every later step of the caller's job.
+      fail=0
+
+      is_malformed_repo() {
+        [[ "$1" =~ ^/|/$|// ]]
+      }
+
+      check_target() {
+        local name="$1" repo="$2" creds_label="$3" creds_set="$4" creds_total="$5"
+
+        local requested=0
+        if [[ -z "$repo" ]]; then
+          requested=0
+        elif is_malformed_repo "$repo"; then
+          echo "::warning::${name}: repository '${repo}' is malformed (a leading/trailing '/', or an empty path segment) -- treating it as unset."
+          requested=0
+        else
+          requested=1
+        fi
+
+        if [[ "$creds_set" -gt 0 && "$creds_set" -lt "$creds_total" ]]; then
+          echo "::error::${name} is partially configured: ${creds_label} must all be set together, or none of them."
+          fail=1
+        elif [[ "$requested" -eq 1 && "$creds_set" -lt "$creds_total" ]]; then
+          if [[ "$FORK_PR" == 'true' ]]; then
+            echo "::warning::${name}: repository is set but credentials (${creds_label}) are withheld on a fork PR -- disabling ${name} for this run."
+          else
+            echo "::error::${name}: repository is set but credentials (${creds_label}) are not configured."
+            fail=1
+          fi
+        elif [[ "$requested" -eq 0 && "$creds_total" -gt 0 && "$creds_set" -eq "$creds_total" ]]; then
+          echo "::warning::${name}: credentials (${creds_label}) are configured but its repository is empty or malformed -- publish is disabled for this run. If these credentials were inherited (e.g. \`secrets: inherit\`) rather than deliberately set for ${name}, this is expected and harmless."
+        elif [[ "$requested" -eq 0 && "$creds_set" -eq 0 ]]; then
+          echo "::warning::${name} is not configured (repository and credentials both unset) -- publish is disabled for this run."
+        fi
+
+        # The one case none of the branches above print anything for: a well-formed request
+        # with a complete credential set (for GHCR, creds_total=0 so this reduces to bare
+        # "requested"). This is what actually decides whether ${name} publishes -- the caller
+        # captures target_publish immediately after each call, below.
+        if [[ "$requested" -eq 1 && "$creds_set" -eq "$creds_total" ]]; then
+          target_publish=1
+        else
+          target_publish=0
+        fi
+      }
+
+      dockerhub_creds_set=0
+      for field in "$DOCKERHUB_USERNAME" "$DOCKERHUB_TOKEN"; do
+        [[ -n "$field" ]] && dockerhub_creds_set=$((dockerhub_creds_set + 1))
+      done
+      check_target "Docker Hub" "$DOCKERHUB_REPOSITORY" "dockerhub_username / dockerhub_token" "$dockerhub_creds_set" 2
+      publish_dockerhub=$target_publish
+
+      private_registry_creds_set=0
+      for field in "$PRIVATE_REGISTRY" "$PRIVATE_REGISTRY_USERNAME" "$PRIVATE_REGISTRY_TOKEN"; do
+        [[ -n "$field" ]] && private_registry_creds_set=$((private_registry_creds_set + 1))
+      done
+      check_target "Private registry" "$PRIVATE_REGISTRY_REPOSITORY" "private_registry / private_registry_username / private_registry_token" "$private_registry_creds_set" 3
+      publish_private_registry=$target_publish
+
+      # GHCR rejects uppercase repository references outright, so lowercase it here (mirroring
+      # GitHub's own `tr '[A-Z]' '[a-z]'` guidance) before it's used anywhere -- both in this
+      # target's own requested-check and in the "Docker meta" step's `images:` list -- rather
+      # than hard-failing on what is usually just an image name that happens to share casing
+      # with a GitHub repository name.
+      ghcr_repository_lower="$(printf '%s' "$GHCR_REPOSITORY" | tr '[:upper:]' '[:lower:]')"
+      if [[ "$ghcr_repository_lower" != "$GHCR_REPOSITORY" ]]; then
+        echo "::warning::GHCR: repository '${GHCR_REPOSITORY}' contains uppercase characters -- GHCR requires a lowercase path; normalizing to '${ghcr_repository_lower}'."
+      fi
+
+      # creds_set=0, creds_total=0: GHCR has no credentials of its own to be partial or
+      # missing about -- see the branch-by-branch walk in the comment above check_target.
+      check_target "GHCR" "$ghcr_repository_lower" "" 0 0
+      publish_ghcr=$target_publish
+
+      publish_any=0
+      [[ "$publish_dockerhub" -eq 1 || "$publish_private_registry" -eq 1 || "$publish_ghcr" -eq 1 ]] && publish_any=1
+
+      bool() { [[ "$1" -eq 1 ]] && echo true || echo false; }
+
+      # Tailscale is a precondition for the private registry (a Tailnet-only host): apply the
+      # same all-or-nothing rule to its OAuth pair so a half-configured Tailscale fails fast
+      # here instead of silently disabling the build cache and then failing late at
+      # "Login to Private Registry" with no tunnel up.
+      tailscale_creds_set=0
+      for field in "$TAILSCALE_OAUTH_CLIENT_ID" "$TAILSCALE_OAUTH_SECRET"; do
+        [[ -n "$field" ]] && tailscale_creds_set=$((tailscale_creds_set + 1))
+      done
+      if [[ "$tailscale_creds_set" -gt 0 && "$tailscale_creds_set" -lt 2 ]]; then
+        echo "::error::Tailscale is partially configured: tailscale_oauth_client_id and tailscale_oauth_secret must both be set together, or neither."
+        fail=1
+      elif [[ "$tailscale_creds_set" -eq 0 ]]; then
+        echo "::warning::Tailscale credentials (tailscale_oauth_client_id / tailscale_oauth_secret) are not configured -- Tailscale connectivity, and anything depending on it (the private registry build cache, a Tailnet-only registry login), is disabled for this run."
+      fi
+
+      if [[ "$publish_any" -ne 1 ]]; then
+        echo "::warning::No publish target is configured (Docker Hub, private registry, and GHCR are all disabled) -- this will be a build-only run that publishes nothing."
+      fi
+
+      # `load` uses the docker exporter, which holds one platform only.
+      if [[ "$LOAD" == 'true' && "$PLATFORMS" == *,* ]]; then
+        echo "::error::load: true builds into the runner's Docker daemon, which holds a single platform, but platforms is '${PLATFORMS}'."
+        fail=1
+      fi
+
+      # Signing needs something pushed to sign, and an OIDC token for the keyless certificate.
+      # A fork PR withholds both (publish targets are disabled above and id-token is never
+      # granted), so signing is skipped there the same way publishing is.
+      sign_enabled=false
+      if [[ "$SIGN" == 'true' ]]; then
+        if [[ "$publish_any" -ne 1 ]]; then
+          if [[ "$FORK_PR" == 'true' ]]; then
+            echo "::warning::sign: nothing is published on this fork PR -- skipping signing."
+          else
+            echo "::error::sign: true needs at least one publish target, since only a pushed image has a digest to sign."
+            fail=1
+          fi
+        elif [[ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]]; then
+          echo "::error::sign: true needs an OIDC token for keyless signing -- grant 'id-token: write' on the job that uses this action."
+          fail=1
+        else
+          sign_enabled=true
+        fi
+      fi
+
+      {
+        echo "publish_dockerhub=$(bool "$publish_dockerhub")"
+        echo "publish_private_registry=$(bool "$publish_private_registry")"
+        echo "publish_ghcr=$(bool "$publish_ghcr")"
+        echo "publish_any=$(bool "$publish_any")"
+        echo "ghcr_repository_lower=${ghcr_repository_lower}"
+        echo "sign=${sign_enabled}"
+      } >> "$GITHUB_OUTPUT"
+
+      exit "$fail"
+
+  - name: Resolve git ref
+    id: ref
+    shell: bash
+    env:
+      PUBLISH_ANY: ${{ steps.validate.outputs.publish_any }}
+    # yamllint disable-line rule:indentation
+    run: |
+      # Ask the caller's checkout what HEAD actually is, instead of guessing from a ref
+      # string's shape. actions/checkout (no sha:) leaves a successful checkout in one of
+      # three states: HEAD on a local branch (`checkout -B <branch> <startpoint>`, for a
+      # fully-qualified refs/heads/<x> or a bare name matching a remote branch, which
+      # actions/checkout also prefers over a tag of the same name), HEAD detached at a fetched
+      # tag ref, or HEAD detached with no tag pointing at it (refs/pull/N/merge, an arbitrary
+      # refs/<other>/<x>, a bare commit).
+      version_sha="$(git rev-parse --short HEAD)"
+      branch="$(git symbolic-ref -q --short HEAD || true)"
+
+      if [[ -n "$branch" ]]; then
+        ref_kind=branch
+        # use the git ref segment after the final slash (a branch name can contain a slash)
+        version_raw="$(echo "$branch" | grep -oE '[^/]+$' | sed -E 's/[^a-zA-Z0-9]+/-/g; s/(^-+)|(-+$)//g')"
+        version_semver=""
+      else
+        # --exact-match only requires a tag ref pointing at HEAD's commit, not full history,
+        # so this is safe under actions/checkout's fetch-depth: 1.
+        tag="$(git describe --tags --exact-match HEAD 2>/dev/null || true)"
+        if [[ -n "$tag" ]]; then
+          ref_kind=tag
+          # use the git ref segment after the final slash (a tag name can contain a slash)
+          version_raw="$(echo "$tag" | grep -oE '[^/]+$')"
+          # A non-semver tag (nightly, rc1, a date stamp) is legitimate and yields an empty
+          # version_semver, not a failure: grep exits 1 on no match, and under bash's default
+          # `-eo pipefail` that would otherwise kill this step outright. The trailing
+          # `|| true` sits after the whole pipeline (not inside it) so it absorbs that
+          # exit status regardless of which stage produced it.
+          #
+          # KNOWN GAP: this pattern matches only the leading X.Y.Z and drops any pre-release
+          # suffix, so "v1.2.3-rc1" yields version_semver="1.2.3" -- indistinguishable from a
+          # genuine 1.2.3 release. Downstream, metadata-action's `latest=auto` then publishes
+          # `latest` for that rc build, overwriting the real 1.2.3. No current consumer cuts
+          # rc tags.
+          version_semver="$(echo "$version_raw" | grep -o -E '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)"
+        elif [[ "$PUBLISH_ANY" == 'true' ]]; then
+          # Publishing from such a HEAD would push unversioned tags (a bare "branch-" and
+          # "git-"), so refuse. A build-only run publishes nothing, so it is allowed below.
+          echo "::error::HEAD ($version_sha) is neither on a branch nor at a tag (detached HEAD, no tag points at it) -- refusing to publish an image with an unclassifiable version."
+          exit 1
+        else
+          ref_kind=other
+          version_raw="$version_sha"
+          version_semver=""
+        fi
+      fi
+
+      {
+        echo "ref_kind=$ref_kind"
+        echo "version_semver=$version_semver"
+        echo "version_raw=$version_raw"
+        echo "version_sha=$version_sha"
+      } >> "$GITHUB_OUTPUT"
+
+  - name: Automatically set image build cache parameters
+    id: cache
+    shell: bash
+    env:
+      PRIVATE_REGISTRY_BUILD_CACHE: ${{ inputs.private_registry_build_cache }}
+      IMAGE_CACHE: ${{ inputs.private_registry }}/${{ inputs.private_registry_build_cache }}
+      CACHE_PARAMS: image-manifest=true,oci-mediatypes=true,mode=max,compression=zstd
+      PUBLISH_PRIVATE_REGISTRY: ${{ steps.validate.outputs.publish_private_registry }}
+      REF_KIND: ${{ steps.ref.outputs.ref_kind }}
+      VERSION_RAW: ${{ steps.ref.outputs.version_raw }}
+    # yamllint disable-line rule:indentation
+    run: |
+      # Guard on private_registry_build_cache directly: IMAGE_CACHE always contains a
+      # literal "/" (it's private_registry + "/" + this input), so it is never empty even
+      # when the input itself is unset.
+      #
+      # No Tailscale check here: the cache lives in the same registry the private registry
+      # target logs into, so if that host is reachable, so is the cache -- and if it isn't,
+      # "Login to Private Registry" fails first and loudly, well before caching matters.
+      if [[ -z "$PRIVATE_REGISTRY_BUILD_CACHE" || "$PUBLISH_PRIVATE_REGISTRY" != 'true' ]]; then
+        echo "No repository for docker build cache specified, disabling build cache all together."
+        CACHE_FROM=""
+        CACHE_TO=""
+      else
+        LAST_COMMIT_MSG=$(git log --oneline --no-merges -1)
+        BUST_CACHE=false
+        # shellcheck disable=SC2076  # literal substring match is intended; unquoting would make [ci: bust-cache] a regex character class
+        if [[ "$LAST_COMMIT_MSG" =~ "[ci: bust-cache]" ]]; then
+          echo "Instruction to bust cache detected in commit message."
+          echo "Disabling use of cache for the build. This build itself will still be cached."
+          BUST_CACHE=true
+        fi
+
+        # Only two caches exist: :branch-<name> (this branch's last build) and :cache-latest
+        # (the last build of anything, on either a branch or a tag). Use REF_KIND, not
+        # VERSION_SEMVER emptiness, as the single answer to "what kind of ref is this" -- a
+        # non-semver tag also has an empty VERSION_SEMVER, and treating it like a branch here
+        # would import/export a bogus :branch-<tag-name> cache ref. A publishing run always has
+        # REF_KIND branch or tag (see "Resolve git ref").
+        if [[ "$BUST_CACHE" == 'true' ]]; then
+          CACHE_FROM=""
+        elif [[ "$REF_KIND" == 'branch' ]]; then
+          echo "Setting cache-from to use current branch and last build of any branch or tag as caches..."
+          CACHE_FROM=$(printf 'type=registry,ref=%s:branch-%s\ntype=registry,ref=%s:cache-latest' \
+            "$IMAGE_CACHE" "$VERSION_RAW" "$IMAGE_CACHE")
+        else
+          echo "Setting cache-from to use last build of any branch or tag as cache..."
+          CACHE_FROM=$(printf 'type=registry,ref=%s:cache-latest' "$IMAGE_CACHE")
+        fi
+
+        if [[ "$REF_KIND" == 'tag' ]]; then
+          # Tag builds only ever refresh cache-latest -- never clobber a branch cache with a
+          # point-in-time release build.
+          echo "Setting cache-to to push to cache-latest only (tag build)..."
+          CACHE_TO=$(printf 'type=registry,ref=%s:cache-latest,%s' "$IMAGE_CACHE" "$CACHE_PARAMS")
+        else
+          echo "Setting cache-to to push to branch cache..."
+          CACHE_TO=$(printf 'type=registry,ref=%s:branch-%s,%s\ntype=registry,ref=%s:cache-latest,%s' \
+            "$IMAGE_CACHE" "$VERSION_RAW" "$CACHE_PARAMS" "$IMAGE_CACHE" "$CACHE_PARAMS")
+        fi
+      fi
+
+      {
+        echo "cache_from<<CACHE_FROM_EOF"
+        echo "$CACHE_FROM"
+        echo "CACHE_FROM_EOF"
+        echo "cache_to<<CACHE_TO_EOF"
+        echo "$CACHE_TO"
+        echo "CACHE_TO_EOF"
+      } >> "$GITHUB_OUTPUT"
+
+  - name: Show build parameters
+    shell: bash
+    env:
+      REF_KIND: ${{ steps.ref.outputs.ref_kind }}
+      VERSION_RAW: ${{ steps.ref.outputs.version_raw }}
+      VERSION_SEMVER: ${{ steps.ref.outputs.version_semver }}
+      VERSION_SHA: ${{ steps.ref.outputs.version_sha }}
+      CACHE_FROM: ${{ steps.cache.outputs.cache_from }}
+      CACHE_TO: ${{ steps.cache.outputs.cache_to }}
+    # yamllint disable-line rule:indentation
+    run: |
+      # CACHE_FROM / CACHE_TO are deliberately newline-separated (docker/build-push-action's
+      # Util.getInputList only splits cache-from/cache-to on newlines), so print each variable
+      # whole rather than through a line-based `env | grep`.
+      for var in REF_KIND VERSION_RAW VERSION_SEMVER VERSION_SHA CACHE_FROM CACHE_TO; do
+        echo "=== $var ==="
+        echo "${!var}"
+      done
+
+  - name: Set up QEMU
+    uses: docker/setup-qemu-action@1f40c72289eff860ee54a304f1438e3cff362e0a # v4.3.0
+
+  - name: Set up Docker Buildx
+    uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+    with:
+      buildkitd-flags: '--debug --allow-insecure-entitlement=network.host'
+      driver-opts: network=host
+      platforms: ${{ inputs.platforms }}
+
+  - name: Docker meta
+    id: meta
+    uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+    with:
+      images: |-
+        ${{ steps.validate.outputs.publish_private_registry == 'true' && format('{0}/{1}', inputs.private_registry, inputs.private_registry_repository) || '' }}
+        ${{ steps.validate.outputs.publish_dockerhub == 'true' && inputs.dockerhub_repository || '' }}
+        ${{ steps.validate.outputs.publish_ghcr == 'true' && format('ghcr.io/{0}', steps.validate.outputs.ghcr_repository_lower) || '' }}
+      labels: |
+        org.opencontainers.image.title=${{ inputs.label_title }}
+        org.opencontainers.image.description=${{ inputs.label_description }}
+        org.opencontainers.image.version=${{ steps.ref.outputs.version_raw }}
+      annotations: |
+        org.opencontainers.image.title=${{ inputs.label_title }}
+        org.opencontainers.image.description=${{ inputs.label_description }}
+        org.opencontainers.image.version=${{ steps.ref.outputs.version_raw }}
+      tags: |-
+        type=raw,value=${{ steps.ref.outputs.version_raw }},enable=${{ steps.ref.outputs.ref_kind == 'tag' }},priority=1000
+        type=semver,pattern={{version}},value=${{ steps.ref.outputs.version_semver }},enable=${{ steps.ref.outputs.version_semver != '' }},priority=900
+        type=semver,pattern={{major}}.{{minor}},value=${{ steps.ref.outputs.version_semver }},enable=${{ steps.ref.outputs.version_semver != '' }},priority=800
+        type=semver,pattern={{major}},value=${{ steps.ref.outputs.version_semver }},enable=${{ steps.ref.outputs.version_semver != '' }},priority=700
+        type=raw,value=latest,enable=${{ steps.ref.outputs.version_semver != '' }},priority=200
+        type=raw,value=${{ steps.ref.outputs.version_raw }},enable=${{ steps.ref.outputs.ref_kind == 'branch' }},prefix=branch-,priority=400
+        type=raw,value=${{ steps.ref.outputs.version_sha }},prefix=git-,priority=300
+
+  - name: Tailscale Connect
+    if: ${{ inputs.tailscale_oauth_client_id != '' && inputs.tailscale_oauth_secret != '' }}
+    uses: tailscale/github-action@780049a30b6ff5c378a9e7b389d15ece7a204888 # v4.1.3
+    with:
+      oauth-client-id: ${{ inputs.tailscale_oauth_client_id }}
+      oauth-secret: ${{ inputs.tailscale_oauth_secret }}
+      tags: tag:github-action-ci-runner
+
+  - name: Login to Docker Hub
+    if: ${{ steps.validate.outputs.publish_dockerhub == 'true' }}
+    uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+    with:
+      username: ${{ inputs.dockerhub_username }}
+      password: ${{ inputs.dockerhub_token }}
+
+  - name: Login to Private Registry
+    if: ${{ steps.validate.outputs.publish_private_registry == 'true' }}
+    uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+    with:
+      registry: ${{ inputs.private_registry }}
+      username: ${{ inputs.private_registry_username }}
+      password: ${{ inputs.private_registry_token }}
+
+  - name: Login to GHCR
+    if: ${{ steps.validate.outputs.publish_ghcr == 'true' }}
+    # Ambient token of the job running this action, so that job must grant `packages: write`.
+    # A token forwarded from another job does NOT work: docker/login-action succeeds (it only
+    # validates token form) but the push 403s with "denied: installation not allowed to Write
+    # organization package". GHCR authorizes against the permissions of the job that executes
+    # the push.
+    uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+    with:
+      registry: ghcr.io
+      username: ${{ github.actor }}
+      password: ${{ github.token }}
+
+  - name: Build and publish image
+    id: build-image
+    uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+    with:
+      context: ./${{ inputs.image_context_path }}
+      file: ${{ inputs.dockerfile }}
+      build-args: ${{ inputs.build_args }}
+      target: ${{ inputs.target }}
+      platforms: ${{ inputs.platforms }}
+      load: ${{ inputs.load }}
+      push: ${{ steps.validate.outputs.publish_any == 'true' }}
+      tags: ${{ steps.meta.outputs.tags }}
+      labels: ${{ steps.meta.outputs.labels }}
+      annotations: ${{ steps.meta.outputs.annotations }}
+      cache-from: ${{ steps.cache.outputs.cache_from }}
+      cache-to: ${{ steps.cache.outputs.cache_to }}
+      sbom: ${{ steps.validate.outputs.publish_any == 'true' }}
+      provenance: ${{ steps.validate.outputs.publish_any == 'true' }}
+      secrets: ${{ inputs.build_secrets }}
+
+  - name: Prepare outputs from image build
+    id: image_info
+    shell: bash
+    env:
+      PUBLISH_ANY: ${{ steps.validate.outputs.publish_any }}
+      IMAGE_TAG: ${{ steps.meta.outputs.version }}
+      IMAGE_DIGEST: ${{ steps.build-image.outputs.digest }}
+      # metadata-action's getTags() does NOT return [] for an empty `images:` list -- it falls
+      # back to generateTags() with an empty image prefix, so a zero-target run's
+      # steps.meta.outputs.tags is still populated with bare, unpushed tag strings (e.g.
+      # "branch-main", "git-1a2b3c4") that look pullable but are not. Gate on publish_any so
+      # image_refs is genuinely empty whenever nothing was pushed.
+      IMAGE_REFS: ${{ steps.validate.outputs.publish_any == 'true' && steps.meta.outputs.tags || '' }}
+    # yamllint disable-line rule:indentation
+    run: |
+      # A build-only run (zero publish targets) is a green run by design, and in that case
+      # digest is legitimately empty -- there's nothing pushed to have a digest. But if
+      # publish_any is true, an empty digest here means the build silently produced nothing
+      # publishable, which a consumer keying off this output (e.g. `docker run ...@$digest`)
+      # would otherwise fail against obscurely, well after this step reported green.
+      if [[ "$PUBLISH_ANY" == 'true' && -z "$IMAGE_DIGEST" ]]; then
+        echo "::error::A publish target is enabled but the build produced no digest."
+        exit 1
+      fi
+
+      {
+        echo "digest=${IMAGE_DIGEST}"
+        echo "image_tag=${IMAGE_TAG}"
+        echo "image_refs<<IMAGE_REFS_EOF"
+        echo "${IMAGE_REFS}"
+        echo "IMAGE_REFS_EOF"
+      } >> "$GITHUB_OUTPUT"
+
+  - name: Install cosign
+    if: ${{ steps.validate.outputs.sign == 'true' }}
+    uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+    with:
+      cosign-release: ${{ inputs.cosign_version }}
+
+  - name: Sign image
+    if: ${{ steps.validate.outputs.sign == 'true' }}
+    shell: bash
+    env:
+      DIGEST: ${{ steps.image_info.outputs.digest }}
+      PUBLISH_DOCKERHUB: ${{ steps.validate.outputs.publish_dockerhub }}
+      PUBLISH_PRIVATE_REGISTRY: ${{ steps.validate.outputs.publish_private_registry }}
+      PUBLISH_GHCR: ${{ steps.validate.outputs.publish_ghcr }}
+      DOCKERHUB_REPOSITORY: ${{ inputs.dockerhub_repository }}
+      PRIVATE_REGISTRY: ${{ inputs.private_registry }}
+      PRIVATE_REGISTRY_REPOSITORY: ${{ inputs.private_registry_repository }}
+      GHCR_REPOSITORY_LOWER: ${{ steps.validate.outputs.ghcr_repository_lower }}
+    # yamllint disable-line rule:indentation
+    run: |
+      # Sign by digest, never by tag: a tag can move between the push and the signature. One
+      # signature per published repository, since each registry stores its own copy. cosign
+      # reads the registry credentials the login steps above wrote.
+      refs=()
+      if [[ "$PUBLISH_PRIVATE_REGISTRY" == 'true' ]]; then
+        refs+=("${PRIVATE_REGISTRY}/${PRIVATE_REGISTRY_REPOSITORY}@${DIGEST}")
+      fi
+      if [[ "$PUBLISH_DOCKERHUB" == 'true' ]]; then
+        refs+=("${DOCKERHUB_REPOSITORY}@${DIGEST}")
+      fi
+      if [[ "$PUBLISH_GHCR" == 'true' ]]; then
+        refs+=("ghcr.io/${GHCR_REPOSITORY_LOWER}@${DIGEST}")
+      fi
+
+      for ref in "${refs[@]}"; do
+        echo "Signing ${ref}"
+        cosign sign --yes "$ref"
+      done
+
+  - name: Truncate Docker Hub short description
+    id: dockerhub_meta
+    if: ${{ steps.validate.outputs.publish_dockerhub == 'true' }}
+    shell: bash
+    env:
+      LABEL_DESCRIPTION: ${{ inputs.label_description }}
+    # yamllint disable-line rule:indentation
+    run: |
+      # Docker Hub caps short-description at 100 characters server-side; label_description
+      # is free text meant for OCI image labels, which have no such limit.
+      echo "short_description=${LABEL_DESCRIPTION:0:100}" >> "$GITHUB_OUTPUT"
+
+  - name: Docker Hub Description
+    if: ${{ steps.validate.outputs.publish_dockerhub == 'true' }}
+    # An announcement after the push already succeeded: readme-filepath must exist, and
+    # short-description is at the mercy of Docker Hub's API. Neither may fail a build that
+    # already published.
+    continue-on-error: true
+    uses: peter-evans/dockerhub-description@1b9a80c056b620d92cedb9d9b5a223409c68ddfa # v5.0.0
+    with:
+      username: ${{ inputs.dockerhub_username }}
+      password: ${{ inputs.dockerhub_token }}
+      repository: ${{ inputs.dockerhub_repository }}
+      readme-filepath: ${{ inputs.dockerhub_readme_path != '' && inputs.dockerhub_readme_path || format('./{0}/README.md', inputs.image_context_path) }}
+      short-description: ${{ steps.dockerhub_meta.outputs.short_description }}
+      enable-url-completion: true
+
+  - name: Tailscale Debug
+    # Runs on a manual workflow_dispatch run (so the tailnet can be inspected on demand), or
+    # when any earlier step of this action failed -- the failure mode it exists to catch is
+    # intermittent Tailscale route churn causing registry-login timeouts and DNS resolution
+    # failures (ppat/homelab-ops-kubernetes-clusters#968). It sits immediately before Tailscale
+    # Disconnect so failure() sees failures from both registry logins and the build itself.
+    #
+    # `!cancelled()` is deliberate: an explicit status-check function such as failure() turns
+    # off the implicit success() wrapper, so cancellation has to be excluded by hand.
+    if: ${{ inputs.tailscale_oauth_client_id != '' && inputs.tailscale_oauth_secret != '' && !cancelled() && (github.event_name == 'workflow_dispatch' || failure()) }}
+    # Debug scaffolding, load-bearing on nothing: `sudo tailscale dns status --all` below is
+    # unpiped, so under `-eo pipefail` a non-zero exit from it alone would kill this step before
+    # the later `tailscale ping` runs. continue-on-error keeps any of that from failing a build.
+    continue-on-error: true
+    shell: bash
+    env:
+      PRIVATE_REGISTRY: ${{ inputs.private_registry }}
+      PUBLISH_PRIVATE_REGISTRY: ${{ steps.validate.outputs.publish_private_registry }}
+    # yamllint disable-line rule:indentation
+    run: |
+      # .github/.output-filter is read from the caller's checkout, so it is honoured when a
+      # consumer provides one, but must not be required: GNU sed exits 4 on a missing script
+      # file. Degrade to an unfiltered passthrough instead.
+      output_filter() {
+        if [[ -f .github/.output-filter ]]; then
+          sed -f .github/.output-filter
+        else
+          cat
+        fi
+      }
+
+      sudo -E tailscale netcheck --verbose 2>&1 | output_filter
+      echo "------------------------------------------------------------------------------"
+      sudo -E tailscale status 2>&1 | output_filter
+      echo "------------------------------------------------------------------------------"
+      sudo -E tailscale status --json --peers=false 2>&1 | output_filter
+      echo "------------------------------------------------------------------------------"
+      sudo tailscale dns status --all
+      echo "------------------------------------------------------------------------------"
+      # Alongside Tailscale's own view of DNS (above), also capture systemd-resolved's live
+      # resolver state: `tailscale dns status` reports what Tailscale has configured, not
+      # necessarily what the resolver is doing with it at this moment.
+      resolvectl status 2>&1 | output_filter
+      echo "------------------------------------------------------------------------------"
+      # Only ping the private registry when it's actually a publish target.
+      if [[ "$PUBLISH_PRIVATE_REGISTRY" == 'true' ]]; then
+        sudo -E tailscale ping --verbose --until-direct=false --c 5 "$PRIVATE_REGISTRY" | output_filter
+        echo "------------------------------------------------------------------------------"
+      fi
+
+  - name: Tailscale Disconnect
+    # Whenever Tailscale Debug's condition can be true, this one is too, so it always follows
+    # Debug and a connected session is never stranded.
+    if: ${{ (success() || failure()) && (inputs.tailscale_oauth_client_id != '' && inputs.tailscale_oauth_secret != '') }}
+    shell: bash
+    run: sudo -E tailscale logout
