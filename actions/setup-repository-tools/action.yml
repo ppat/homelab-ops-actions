@@ -35,7 +35,7 @@ inputs:
   mise_version:
     required: false
     # renovate: datasource=github-releases depName=jdx/mise
-    default: "v2026.9.18"
+    default: "v2026.10.3"
   token:
     required: true
 
