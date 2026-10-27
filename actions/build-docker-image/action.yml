@@ -509,7 +509,7 @@ runs:
 
   - name: Tailscale Connect
     if: ${{ inputs.tailscale_oauth_client_id != '' && inputs.tailscale_oauth_secret != '' }}
-    uses: tailscale/github-action@d1b6cd204f8dceda5b3eaad7f1f767be390056cd # v4.2.0
+    uses: tailscale/github-action@99a8333667fff04fdd6cffb46dfd409f8329a7bf # v4.3.0
     with:
       oauth-client-id: ${{ inputs.tailscale_oauth_client_id }}
       oauth-secret: ${{ inputs.tailscale_oauth_secret }}
@@ -517,14 +517,14 @@ runs:
 
   - name: Login to Docker Hub
     if: ${{ steps.validate.outputs.publish_dockerhub == 'true' }}
-    uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+    uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
     with:
       username: ${{ inputs.dockerhub_username }}
       password: ${{ inputs.dockerhub_token }}
 
   - name: Login to Private Registry
     if: ${{ steps.validate.outputs.publish_private_registry == 'true' }}
-    uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+    uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
     with:
       registry: ${{ inputs.private_registry }}
       username: ${{ inputs.private_registry_username }}
@@ -537,7 +537,7 @@ runs:
     # validates token form) but the push 403s with "denied: installation not allowed to Write
     # organization package". GHCR authorizes against the permissions of the job that executes
     # the push.
-    uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+    uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
     with:
       registry: ghcr.io
       username: ${{ github.actor }}
