@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.11.0](https://github.com/ppat/homelab-ops-actions/compare/v2.10.0...v2.11.0) (2026-11-01)
+
+
+### 🧹 Miscellaneous
+
+* **dev-tools:** update jdx/mise (v2026.10.22 -&gt; v2026.10.23) ([#237](https://github.com/ppat/homelab-ops-actions/issues/237)) ([402c792](https://github.com/ppat/homelab-ops-actions/commit/402c7929dd137e97a98968613b50db17f4efac31))
+* **dev-tools:** update jdx/mise (v2026.10.23 -&gt; v2026.10.25) ([#241](https://github.com/ppat/homelab-ops-actions/issues/241)) ([f50ab24](https://github.com/ppat/homelab-ops-actions/commit/f50ab24274f7fc1c9d8bbb7dadf5c16bd5aac7bf))
+
+
+### ✨ Features
+
+* **github-actions:** update jdx/mise-action (v5.1.1 -&gt; v5.2.5) ([#238](https://github.com/ppat/homelab-ops-actions/issues/238)) ([b743c15](https://github.com/ppat/homelab-ops-actions/commit/b743c15369f7e55545b5cb487c92930845cd6d7e))
+
 ## [2.10.0](https://github.com/ppat/homelab-ops-actions/compare/v2.9.0...v2.10.0) (2026-11-01)
 
 
