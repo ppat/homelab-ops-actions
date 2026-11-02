@@ -43,7 +43,7 @@ repos:
     language: node
     stages: [commit-msg]
     additional_dependencies:
-    - '@commitlint/cli@19.8.1'
-    - '@commitlint/config-conventional@19.8.1'
-    - '@commitlint/ensure@19.8.1'
-    - 'commitlint-plugin-function-rules@4.0.2'
+    - '@commitlint/cli@21.2.3'
+    - '@commitlint/config-conventional@21.2.3'
+    - '@commitlint/ensure@21.2.3'
+    - 'commitlint-plugin-function-rules@5.0.1'
