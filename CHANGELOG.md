@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.12.0](https://github.com/ppat/homelab-ops-actions/compare/v2.11.0...v2.12.0) (2026-11-06)
+
+
+### 🧹 Miscellaneous
+
+* **dev-tools:** update pre-commit packages (major) ([#244](https://github.com/ppat/homelab-ops-actions/issues/244)) ([444004f](https://github.com/ppat/homelab-ops-actions/commit/444004f2f27f44bd9fcf792531522bf33ebbafcc))
+* **dev-tools:** update pre-commit packages (non-major) ([#236](https://github.com/ppat/homelab-ops-actions/issues/236)) ([53113ba](https://github.com/ppat/homelab-ops-actions/commit/53113ba6aedabf0056eee76d42e26fcd4edec619))
+* fix pre-commit cfg ([#242](https://github.com/ppat/homelab-ops-actions/issues/242)) ([cb03d69](https://github.com/ppat/homelab-ops-actions/commit/cb03d697be12d297c43cb308aad0d4403bc1efc9))
+
+
+### ✨ Features
+
+* **github-actions:** update ppat/github-workflows (v8.4.0 -&gt; v8.5.0) ([#243](https://github.com/ppat/homelab-ops-actions/issues/243)) ([681ad12](https://github.com/ppat/homelab-ops-actions/commit/681ad12923d551513c8976a914f3ba842974faf3))
+* **github-actions:** update tailscale/github-action (v4.3.0 -&gt; v4.4.0) ([#239](https://github.com/ppat/homelab-ops-actions/issues/239)) ([71e52aa](https://github.com/ppat/homelab-ops-actions/commit/71e52aaaf7c9049cba8962ff4987e5f7094c3993))
+* **github-actions:** update ubuntu (24.04 -&gt; 26.04) ([#245](https://github.com/ppat/homelab-ops-actions/issues/245)) ([5fc3df0](https://github.com/ppat/homelab-ops-actions/commit/5fc3df09b216e81930e1879d1796dcf2217ed183))
+
+
+### 🚀 Enhancements + Bug Fixes
+
+* **dev-tools:** update astral-sh/uv (0.13.6 -&gt; 0.13.7) ([#247](https://github.com/ppat/homelab-ops-actions/issues/247)) ([68d9010](https://github.com/ppat/homelab-ops-actions/commit/68d90104bfaa4c7f0ac5c7e0b1289399a56d5913))
+
 ## [2.11.0](https://github.com/ppat/homelab-ops-actions/compare/v2.10.0...v2.11.0) (2026-11-01)
 
 
