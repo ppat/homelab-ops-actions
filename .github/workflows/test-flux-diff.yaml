@@ -26,30 +26,35 @@ jobs:
   test:
     runs-on: ubuntu-26.04
     timeout-minutes: 5
-    strategy:
-      fail-fast: false
-      matrix:
-        resource:
-        - helmrelease
-        - kustomization
-
     steps:
-    - name: Checkout
+    # Only loads the local actions referenced below (`uses: ./actions/...` resolves from the
+    # workspace); flux-diff checks out the trees it renders itself.
+    - name: Checkout actions under test
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         fetch-depth: 1
         persist-credentials: false
+        sparse-checkout: actions
 
     - name: Flux Diff
       id: flux-diff
       uses: ./actions/flux-diff/
       with:
         log_level: DEBUG
-        other_params: ${{ matrix.resource == 'helmrelease' && '--api-versions monitoring.coreos.com/v1' || '' }}
+        other_params: --api-versions monitoring.coreos.com/v1
         path_after: ci/test-data/flux-diff/after
         path_before: ci/test-data/flux-diff/before
-        resource_type: ${{ matrix.resource }}
-        sources: "test-source=./"
+        resource_type: all
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    # The fixtures change on both sides by construction, so an empty diff means the renderer
+    # dropped output rather than found nothing to report.
+    - name: Assert diff is not empty
+      if: ${{ steps.flux-diff.outputs.diff == '' }}
+      shell: bash
+      run: |
+        echo "::error::flux-diff produced no diff although the fixtures differ"
+        exit 1
 
     - name: Comment on PR w/ diff
       uses: ./actions/comment-on-pr/
@@ -59,5 +64,5 @@ jobs:
           `````diff
           ${{ steps.flux-diff.outputs.diff }}
           `````
-        message_id: "${{ github.event.pull_request.number }}/${{ matrix.resource }}"
+        message_id: "${{ github.event.pull_request.number }}"
         token: ${{ secrets.GITHUB_TOKEN }}

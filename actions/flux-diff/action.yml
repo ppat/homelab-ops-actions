@@ -1,29 +1,35 @@
 ---
 name: Flux Diff
-description: Run flux-local diff against before and after versions of a kubernetes manifest paths
+description: Render a Flux manifest tree at a PR and at its base branch with flate, and diff the two
 author: homelab-ops@homelab-ops.com
 
 inputs:
+  flate_version:
+    required: false
+    description: flate release installed through setup-repository-tools (mise aqua backend)
+    # renovate: datasource=github-releases depName=home-operations/flate
+    default: "v0.6.5"
+  krmignore:
+    required: false
+    description: gitignore-style file, relative to the repository root, of paths to leave out of both trees
+    default: ""
   log_level:
     required: false
-    default: INFO
+    default: info
   other_params:
     required: false
     default: ""
   path_after:
     required: true
+    description: manifest tree in the PR checkout, relative to the repository root
   path_before:
     required: true
+    description: manifest tree in the base-branch checkout, relative to the repository root
   resource_type:
     required: true
-  skip_params:
-    required: false
-    default: "--skip-crds --skip-secrets"
-  sources:
+  token:
     required: true
-  strip_attrs:
-    required: false
-    default: "helm.sh/chart,checksum/config,app.kubernetes.io/version,chart"
+    description: token for the checkouts and for mise's GitHub API calls
 
 outputs:
   diff:
@@ -32,22 +38,54 @@ outputs:
 runs:
   using: composite
   steps:
-  - name: Run flux-local diff
-    uses: docker://ghcr.io/allenporter/flux-local:v8.4.0@sha256:c0be852e30f299ce6a220cc992b0c21a2a0b0684cc17713b9d718e18d9c8beff
+  # Checks out github.ref into current/ (a pull_request's merge commit) and installs flate.
+  - name: Setup repository and tools
+    uses: ppat/homelab-ops-actions/actions/setup-repository-tools@66ed3b99f806f50f4e623d3d346f4ba37505ec68 # v2.12.0
     with:
-      args: >-
-        --log-level ${{ inputs.log_level }}
-        diff ${{ inputs.resource_type }}
-        --unified 6
-        --path /github/workspace/${{ inputs.path_after }}
-        --path-orig /github/workspace/${{ inputs.path_before }}
-        ${{ inputs.skip_params }}
-        --strip-attrs ${{ inputs.strip_attrs }}
-        --limit-bytes 10000
-        --all-namespaces
-        --sources ${{ inputs.sources }}
-        --output-file diff.patch
-        ${{ inputs.other_params }}
+      current_git_ref: ${{ github.ref }}
+      current_repository: ${{ github.repository }}
+      token: ${{ inputs.token }}
+      mise_toml: |
+        [tools]
+        "aqua:home-operations/flate" = "${{ inputs.flate_version }}"
+
+  - name: Checkout base branch
+    uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    with:
+      path: base
+      persist-credentials: false
+      ref: ${{ github.base_ref || github.event.repository.default_branch }}
+      token: ${{ inputs.token }}
+
+  - name: Run flate diff
+    shell: bash
+    env:
+      KRMIGNORE: ${{ inputs.krmignore }}
+      LOG_LEVEL: ${{ inputs.log_level }}
+      OTHER_PARAMS: ${{ inputs.other_params }}
+      PATH_AFTER: ${{ inputs.path_after }}
+      PATH_BEFORE: ${{ inputs.path_before }}
+      RESOURCE_TYPE: ${{ inputs.resource_type }}
+    # yamllint disable-line rule:indentation
+    run: |
+      set -euo pipefail
+      # A tree added or removed by the PR exists on one side only. flate rejects a missing
+      # path but renders an empty one as a full addition or removal.
+      mkdir -p "current/${PATH_AFTER}" "base/${PATH_BEFORE}"
+      read -ra other_params <<< "${OTHER_PARAMS}"
+      if [[ -n "${KRMIGNORE}" ]]; then
+        other_params+=(--krmignore "current/${KRMIGNORE}")
+      fi
+      flate --version
+      flate diff "${RESOURCE_TYPE}" \
+        --path "current/${PATH_AFTER}" \
+        --path-orig "base/${PATH_BEFORE}" \
+        --output diff \
+        --log-level "${LOG_LEVEL,,}" \
+        --no-progress \
+        --concurrency 1 \
+        "${other_params[@]}" \
+        > diff.patch
 
   - name: Generate Diff
     id: diff
