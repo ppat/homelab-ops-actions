@@ -10,7 +10,7 @@ supporting CI/CD workflows across the `homelab-ops` and `ppat` GitHub organizati
 | [`actions/build-docker-image`](actions/build-docker-image/README.md) | Build a Docker image from the caller's checkout, optionally publish it to Docker Hub, a private registry and/or GHCR, and optionally sign it by digest with keyless cosign. |
 | [`actions/comment-on-pr`](actions/comment-on-pr/README.md) | Create or update a PR comment, keyed by a hidden `message_id` marker so repeat runs edit in place instead of piling up new comments. |
 | [`actions/create-signed-commit`](actions/create-signed-commit/README.md) | Commit staged changes to a branch via the GitHub GraphQL API (`createCommitOnBranch`) so the commit is signed by GitHub, instead of `git commit` + `git push`. |
-| [`actions/flux-diff`](actions/flux-diff/README.md) | Run [`flux-local diff`](https://github.com/allenporter/flux-local) between a before/after version of a Flux-managed Kubernetes manifest tree and expose the resulting patch. |
+| [`actions/flux-diff`](actions/flux-diff/README.md) | Run [`flate diff`](https://github.com/home-operations/flate) between a before/after version of a Flux-managed Kubernetes manifest tree and expose the resulting patch. |
 | [`actions/release-sweep`](actions/release-sweep/README.md) | Evaluate and safely merge eligible release-please pull requests using a caller-provided GitHub App token. |
 | [`actions/setup-repository-tools`](actions/setup-repository-tools/README.md) | Checkout a repository and install its toolchain via [`mise`](https://mise.jdx.dev/), with caching. Used as the common setup step by reusable workflows in [`ppat/github-workflows`](https://github.com/ppat/github-workflows). |
 

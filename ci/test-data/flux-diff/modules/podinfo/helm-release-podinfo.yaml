@@ -14,7 +14,7 @@ spec:
 
   values:
     # Substituted so the before and after trees render this release differently.
-    # flux-local only templates a HelmRelease whose inputs changed, so without a
+    # The diff only templates a HelmRelease whose inputs changed, so without a
     # difference here the chart is never rendered and the digest path is never
     # exercised -- the test would pass without testing anything.
     ui:
