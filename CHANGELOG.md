@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.0.0](https://github.com/ppat/homelab-ops-actions/compare/v2.12.0...v3.0.0) (2026-11-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* callers remove their before/after checkouts and any tool setup for this step; the action checks out the PR merge commit and the base branch itself, so `path_before` and `path_after` are now relative to the repository root, and the new required `token` input is passed `secrets.GITHUB_TOKEN`. The `sources`, `skip_params` and `strip_attrs` inputs are removed: drop `sources` and delete any step that stages sources for it; flate's defaults already skip Secrets and CRDs and strip the same metadata. `log_level` takes flate's levels in any case, and `other_params` must hold flate flags.
+
+### ✨ Features
+
+* **github-actions:** update ppat/github-workflows (v8.5.0 -&gt; v9.0.0) ([#249](https://github.com/ppat/homelab-ops-actions/issues/249)) ([39be7f2](https://github.com/ppat/homelab-ops-actions/commit/39be7f2c5a1931dbe4661754d1bc24f4b308a401))
+* run flux-diff on flate instead of the archived flux-local ([#250](https://github.com/ppat/homelab-ops-actions/issues/250)) ([371d327](https://github.com/ppat/homelab-ops-actions/commit/371d327f3ed0c911d9241c805cd7e606da77ec13))
+
 ## [2.12.0](https://github.com/ppat/homelab-ops-actions/compare/v2.11.0...v2.12.0) (2026-11-06)
 
 
