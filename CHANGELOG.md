@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.1.0](https://github.com/ppat/homelab-ops-actions/compare/v3.0.0...v3.1.0) (2026-11-09)
+
+
+### 🧹 Miscellaneous
+
+* **dev-tools:** update jdx/mise (v2026.10.25 -&gt; v2026.11.2) ([#253](https://github.com/ppat/homelab-ops-actions/issues/253)) ([d793775](https://github.com/ppat/homelab-ops-actions/commit/d7937751c9c52da2b04799843b843ad5a743c8d6))
+
+
+### ✨ Features
+
+* **github-actions:** update docker/login-action (v4.7.0 -&gt; v4.8.0) ([#254](https://github.com/ppat/homelab-ops-actions/issues/254)) ([918426f](https://github.com/ppat/homelab-ops-actions/commit/918426fe238478f872bed01ea5eed15f546e4e9c))
+
 ## [3.0.0](https://github.com/ppat/homelab-ops-actions/compare/v2.12.0...v3.0.0) (2026-11-07)
 
 
