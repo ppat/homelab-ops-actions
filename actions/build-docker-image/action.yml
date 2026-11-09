@@ -517,14 +517,14 @@ runs:
 
   - name: Login to Docker Hub
     if: ${{ steps.validate.outputs.publish_dockerhub == 'true' }}
-    uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+    uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
     with:
       username: ${{ inputs.dockerhub_username }}
       password: ${{ inputs.dockerhub_token }}
 
   - name: Login to Private Registry
     if: ${{ steps.validate.outputs.publish_private_registry == 'true' }}
-    uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+    uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
     with:
       registry: ${{ inputs.private_registry }}
       username: ${{ inputs.private_registry_username }}
@@ -537,7 +537,7 @@ runs:
     # validates token form) but the push 403s with "denied: installation not allowed to Write
     # organization package". GHCR authorizes against the permissions of the job that executes
     # the push.
-    uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+    uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
     with:
       registry: ghcr.io
       username: ${{ github.actor }}
