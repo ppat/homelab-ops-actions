@@ -1,5 +1,26 @@
 # Changelog
 
+## [3.1.0](https://github.com/ppat/homelab-ops-actions/compare/v3.0.0...v3.1.0) (2026-11-16)
+
+
+### 🧹 Miscellaneous
+
+* **dev-tools:** update davidanson/markdownlint-cli2 (non-major) ([#257](https://github.com/ppat/homelab-ops-actions/issues/257)) ([2fb749a](https://github.com/ppat/homelab-ops-actions/commit/2fb749aafd007b21418dc029c62b40ab75b2097c))
+* **dev-tools:** update jdx/mise (v2026.10.25 -&gt; v2026.11.2) ([#253](https://github.com/ppat/homelab-ops-actions/issues/253)) ([d793775](https://github.com/ppat/homelab-ops-actions/commit/d7937751c9c52da2b04799843b843ad5a743c8d6))
+* **dev-tools:** update jdx/mise (v2026.11.2 -&gt; v2026.11.7) ([#258](https://github.com/ppat/homelab-ops-actions/issues/258)) ([c85f463](https://github.com/ppat/homelab-ops-actions/commit/c85f46387f7ec920668fb0971d7e9ed9fd5fa1a4))
+* **dev-tools:** update sirosen/texthooks (major) ([#260](https://github.com/ppat/homelab-ops-actions/issues/260)) ([83b8fde](https://github.com/ppat/homelab-ops-actions/commit/83b8fde3c52cb6478caa0f14dea5700c2f025354))
+
+
+### ✨ Features
+
+* **github-actions:** update docker/login-action (v4.7.0 -&gt; v4.8.0) ([#254](https://github.com/ppat/homelab-ops-actions/issues/254)) ([918426f](https://github.com/ppat/homelab-ops-actions/commit/918426fe238478f872bed01ea5eed15f546e4e9c))
+
+
+### 🚀 Enhancements + Bug Fixes
+
+* **dev-tools:** update astral-sh/uv (0.13.7 -&gt; 0.13.8) ([#256](https://github.com/ppat/homelab-ops-actions/issues/256)) ([be4ba98](https://github.com/ppat/homelab-ops-actions/commit/be4ba98afa02807d6323b07c8536e7429bb48c19))
+* run flux-diff's setup-repository-tools from flux-diff's own ref ([#261](https://github.com/ppat/homelab-ops-actions/issues/261)) ([b722ba1](https://github.com/ppat/homelab-ops-actions/commit/b722ba17326fc720196148ccd931e5a03ae6c1bd))
+
 ## [3.0.0](https://github.com/ppat/homelab-ops-actions/compare/v2.12.0...v3.0.0) (2026-11-07)
 
 
