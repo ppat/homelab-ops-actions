@@ -38,9 +38,22 @@ outputs:
 runs:
   using: composite
   steps:
+  # setup-repository-tools runs from the same ref as this action, not from a pinned release.
+  # `uses:` takes no expressions and `./` resolves against the caller's workspace, so the
+  # sibling action, already on disk in this action's download, is staged into the workspace
+  # and referenced from there.
+  - name: Stage setup-repository-tools from this action's ref
+    shell: bash
+    # yamllint disable-line rule:indentation
+    run: |
+      set -euo pipefail
+      rm -rf "${GITHUB_WORKSPACE}/.flux-diff-actions"
+      mkdir -p "${GITHUB_WORKSPACE}/.flux-diff-actions"
+      cp -R "${GITHUB_ACTION_PATH}/../setup-repository-tools" "${GITHUB_WORKSPACE}/.flux-diff-actions/"
+
   # Checks out github.ref into current/ (a pull_request's merge commit) and installs flate.
   - name: Setup repository and tools
-    uses: ppat/homelab-ops-actions/actions/setup-repository-tools@66ed3b99f806f50f4e623d3d346f4ba37505ec68 # v2.12.0
+    uses: ./.flux-diff-actions/setup-repository-tools
     with:
       current_git_ref: ${{ github.ref }}
       current_repository: ${{ github.repository }}
