@@ -12,6 +12,8 @@ expose the resulting unified diff as an output.
    diff the base's newer changes in reverse. The `aqua:` backend verifies the release against the
    cosign bundle flate publishes with it, plus the checksum. The `github:` backend would check only
    the checksum, because flate publishes no GitHub artifact attestation.
+   setup-repository-tools runs from the same ref as flux-diff, staged into
+   `.flux-diff-actions/` in the workspace, so the two always ship and test as a pair.
 2. Checks out the PR's base branch (the default branch outside a PR) into `base/`.
 3. Runs `flate diff <resource_type> --path current/<path_after> --path-orig base/<path_before>
    --output diff --concurrency 1` and writes the result to `diff.patch`. A tree missing on one side
@@ -62,6 +64,9 @@ directory, which matters only when reproducing a diff locally: use a plain clone
   HelmRelease is not re-rendered, so its rendered effect is absent from the diff.
 - Two identical trees render nothing, so a green run on a PR that changes no manifests says nothing
   about whether a real change would render.
+- Passing `--path-orig` always puts flate in changed-only mode, and flate has no flag to turn it
+  off. It renders only objects whose files differ between `base/` and `current/` at the same path,
+  so `path_before` and `path_after` being different directories does not count as a change.
 - The diff uses 3 lines of context; flate has no flag to change it.
 
 ## Choosing the pinned version
