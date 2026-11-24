@@ -1,5 +1,24 @@
 # Changelog
 
+## [3.2.0](https://github.com/ppat/homelab-ops-actions/compare/v3.1.0...v3.2.0) (2026-11-24)
+
+
+### 🧹 Miscellaneous
+
+* **dev-tools:** update jdx/mise (v2026.11.7 -&gt; v2026.11.11) ([#267](https://github.com/ppat/homelab-ops-actions/issues/267)) ([29ce46c](https://github.com/ppat/homelab-ops-actions/commit/29ce46c9f1b11758d5ed51e257570389430774b7))
+
+
+### ✨ Features
+
+* **github-actions:** update actions/create-github-app-token (v3.3.0 -&gt; v3.4.0) ([#266](https://github.com/ppat/homelab-ops-actions/issues/266)) ([7254db1](https://github.com/ppat/homelab-ops-actions/commit/7254db1047a35cbdb6873832d6123a589ea7cc08))
+* **github-actions:** update ppat/github-workflows (v9.0.0 -&gt; v10.0.0) ([#263](https://github.com/ppat/homelab-ops-actions/issues/263)) ([7fdc908](https://github.com/ppat/homelab-ops-actions/commit/7fdc908e9104e1f3bc2f70e3179f35f438385fbb))
+* update home-operations/flate (v0.6.5 -&gt; v0.7.3) ([#262](https://github.com/ppat/homelab-ops-actions/issues/262)) ([62731a1](https://github.com/ppat/homelab-ops-actions/commit/62731a1901b9598c18c6f4352b4737ca580724c1))
+
+
+### 🚀 Enhancements + Bug Fixes
+
+* **dev-tools:** update astral-sh/uv (0.13.8 -&gt; 0.13.9) ([#265](https://github.com/ppat/homelab-ops-actions/issues/265)) ([ede8c37](https://github.com/ppat/homelab-ops-actions/commit/ede8c37e9107c4053cdb840c8ce255057b985285))
+
 ## [3.1.0](https://github.com/ppat/homelab-ops-actions/compare/v3.0.0...v3.1.0) (2026-11-16)
 
 
