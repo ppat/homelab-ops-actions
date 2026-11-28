@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.2.1](https://github.com/ppat/homelab-ops-actions/compare/v3.2.0...v3.2.1) (2026-11-28)
+
+
+### 🚀 Enhancements + Bug Fixes
+
+* **dev-tools:** update astral-sh/uv (0.13.9 -&gt; 0.13.10) ([#269](https://github.com/ppat/homelab-ops-actions/issues/269)) ([1e96c24](https://github.com/ppat/homelab-ops-actions/commit/1e96c2497c0cce60c0cfa66e9a09140723f00faa))
+* update sigstore/cosign (v3.1.4 -&gt; v3.1.6) ([#268](https://github.com/ppat/homelab-ops-actions/issues/268)) ([31e7d42](https://github.com/ppat/homelab-ops-actions/commit/31e7d42eb7907ea320e69abc55c0aecb8b2ca596))
+
 ## [3.2.0](https://github.com/ppat/homelab-ops-actions/compare/v3.1.0...v3.2.0) (2026-11-24)
 
 
